@@ -9,8 +9,10 @@ CREATE TABLE `workflow_states` (
   `wid` int(10) unsigned NOT NULL default '0',
   `state` varchar(255) NOT NULL default '',
   `weight` tinyint(4) NOT NULL default '0',
+  `sysid` tinyint(4) NOT NULL default '0',
   PRIMARY KEY  (`sid`),
-  KEY `wid` (`wid`)
+  KEY `wid` (`wid`),
+  KEY `sysid` (`sysid`)
 ) TYPE=MyISAM;
 
 # --------------------------------------------------------
