@@ -1,7 +1,0 @@
-I habe develloped a module that sends declined nodes back to the author.
-I introduced a workflow hook into my enhanced version of the queue module
-in contrib-cvs/modules/queue. You need to install this version of the module.
-The actual sending is done by this workflow module.
-
-The module is probably still buggy. Please send bug reports directly to me:
-                                               gerhard at killesreiter dot de
