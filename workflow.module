@@ -24,7 +24,7 @@ function workflow_help($section) {
     case 'admin/workflow/types':
       return t('Each node type may have a separate workflow. Use this page to associate node types with the workflow you want them to use.');
     case strstr($section, 'admin/workflow/actions'):
-      return t('You can set actions to happen when transitions occur. To configure actions, use the actions module.');
+      return t('Use this page to set actions to happen when transitions occur. To configure actions, use the actions module.');
   }
 }
 
@@ -161,7 +161,7 @@ function workflow_nodeapi($node, $op) {
       db_query("INSERT INTO {workflow_node} (nid, sid) VALUES (%d, %d)", $nid, $sid);
       
       // find the creation state id for this workflow
-      $creation_sid = db_result(db_query("SELECT w2.sid FROM {workflow_states} as w1, {workflow_states} as w2 WHERE w1.sid = 9 AND w2.wid = w1.wid AND w2.sysid = %d", WORKFLOW_CREATION));
+      $creation_sid = db_result(db_query("SELECT w2.sid FROM {workflow_states} as w1, {workflow_states} as w2 WHERE w1.sid = %d AND w2.wid = w1.wid AND w2.sysid = %d", $sid, WORKFLOW_CREATION));
       
       // call the workflow callback, which the workflow module will catch
       module_invoke_all('workflow', 'insert', $creation_sid, $sid, $node);
@@ -591,10 +591,10 @@ function workflow_types_form() {
 
 function workflow_actions_form($wid, $edit) {
   $output = '';
-  //$states = workflow_get_states($wid);
+  $states = array();
   $all_states = workflow_get_states($wid);
-  $initial_sid = key($all_states); 
-  $initial_state = $all_states[$initial_sid];
+  //$initial_sid = key($all_states); 
+  //$initial_state = $all_states[$initial_sid];
 
   foreach ($all_states as $key => $val) {
     $states[$key] = $val;
@@ -897,9 +897,15 @@ function workflow_transitions_load($sid) {
 function workflow_transition_save($sid, $edit) {
   $sid = intval($sid);
   $preexisting = array();
+  
+  // an sql genius could combine the next two queries and remove the if statement
+  $creation_sid = db_result(db_query("SELECT w2.sid FROM {workflow_states} as w1, {workflow_states} as w2 WHERE w1.sid = %d AND w2.wid = w1.wid AND w2.sysid = %d", $sid, WORKFLOW_CREATION));
   $result = db_query("SELECT sid, target_sid FROM {workflow_transitions} WHERE sid = %d OR target_sid = %d", $sid, $sid);
+  
   while ($data = db_fetch_object($result)) {
-   $preexisting[$data->sid][$data->target_sid] = TRUE; 
+    if ($data->sid != $creation_sid) {
+      $preexisting[$data->sid][$data->target_sid] = TRUE; 
+    }
   }
   
   foreach ($edit as $key => $val) {
