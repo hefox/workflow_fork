@@ -18,7 +18,7 @@ function workflow_help($section) {
     case strstr($section, 'admin/workflow/transition'):
       return t('You are currently editing the possible transitions to and from a workflow state. The state is shown in the middle column. To the left, check all states that may come before this state. To the right, check all states that may come after this state. For example, you may have a workflow with three states, <em>draft</em>, <em>review</em>, and <em>published</em>. You probably would want the <em>draft</em> state to be able to move to the <em>review</em> state.');
     case 'admin/workflow/add':
-      return t('To get started, provide a name for your workflow. You might want to give it a name based on the states you will add to the workflow, like <em>Draft-Review-Publish</em> or a name based on its role in your organization, like <em>Sports Column Workflow</em>.');
+      return t('To get started, provide a name for your workflow. This name will be used as a label when the workflow status is shown during node editing.');
     case strstr($section, 'admin/workflow/state'):
       return t('Enter the name for a state in your workflow. For example, if you were doing a meal workflow it may include states like <em>shop</em>, <em>prepare food</em>, <em>eat</em>, and <em>clean up</em>.');
     case 'admin/workflow/types':
@@ -91,10 +91,12 @@ function workflow_nodeapi($node, $op) {
     
     // load is called when nodes are edited or submitted
     case 'load':
-    // note to ourselves in static variable that this is an edit or submit
-    $editing = TRUE;
-    break;
+      // note to ourselves in static variable that this is an edit or submit
+      $editing = TRUE;
+      break;
     
+    // form post is called when the node editing form has been put together
+    // and the node is asking for extra fields to be added at the bottom
     case 'form post':
       $wid = workflow_get_workflow_for_type($node->type);
       if (!$wid) return; // workflow set to None for this type, or workflow not set up for this type
@@ -106,14 +108,7 @@ function workflow_nodeapi($node, $op) {
       reset($states);
       next($states); // creation state
       $initial_state_id = key($states);
- 
-      /*
-      foreach ($states as $key => $val) {
-        $initial_state_id = $key;
-        break;
-      }
-      */
-      
+       
       if (isset($editing)) { // we are editing a node
         // what is the current state? need to pull this
         $data = db_fetch_object(db_query("SELECT sid FROM {workflow_node} WHERE nid = %d", intval($node->nid)));
@@ -143,10 +138,13 @@ function workflow_nodeapi($node, $op) {
 
     case 'validate':
       // if we are editing (not adding) a node and the form is on its way from the user to the db
-      if (isset($editing) && array_key_exists('edit', $_POST) && array_key_exists('_workflow', $_POST['edit'])) {
+      // we check to make sure that the state being submitted exists for this type
+      // TODO: we should also check that the workflow state is a valid transition state from
+      // the node's previous workflow state to avoid workflow state change by manually editing HTML
+      if (isset($editing) && isset($_POST['edit']) && isset($_POST['edit']['_workflow'])) {
         $wid = workflow_get_workflow_for_type($node->type);
         $states = workflow_get_states($wid);
-        if (!array_key_exists($node->_workflow, $states)) {
+        if (!isset($states[$node->_workflow])) {
           form_set_error('format', t('The workflow state is invalid for this node type. Check workflow settings.'));
         }
       }
@@ -168,6 +166,10 @@ function workflow_nodeapi($node, $op) {
       break;
     
     case 'update':
+      // if no _workflow field is defined, do nothing
+      // if we implement same-state transitions this would need to change
+      if (!isset($_POST['edit']['_workflow'])) return;
+    
       // pull last known state for this node
       $nid = intval($node->nid);
       $data = db_fetch_object(db_query("SELECT sid FROM {workflow_node} WHERE nid = %d", $nid));
