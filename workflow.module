@@ -21,8 +21,6 @@ function workflow_help($section) {
       return t('To get started, provide a name for your workflow. This name will be used as a label when the workflow status is shown during node editing.');
     case strstr($section, 'admin/workflow/state'):
       return t('Enter the name for a state in your workflow. For example, if you were doing a meal workflow it may include states like <em>shop</em>, <em>prepare food</em>, <em>eat</em>, and <em>clean up</em>.');
-    case 'admin/workflow/types':
-      return t('Each node type may have a separate workflow. Use this page to associate node types with the workflow you want them to use.');
     case strstr($section, 'admin/workflow/actions'):
       return t('Use this page to set actions to happen when transitions occur. To configure actions, use the actions module.');
   }
@@ -60,12 +58,6 @@ function workflow_menu($may_cache) {
       'access'   => $access,
       'weight'   => -9,
       'type'     => MENU_LOCAL_TASK);
-
-    $items[] = array('path' => 'admin/workflow/types',
-      'title'    => t('type mapping'),
-      'access'   => $access,
-      'weight'   => -8,
-      'type'     => MENU_LOCAL_TASK);    
   }
 
   return $items;
@@ -322,17 +314,6 @@ function workflow_page($op = NULL, $arg3 = null, $arg4 = null, $arg5 = null, $ar
         }
       }
       break;
-    
-    case 'types':
-    if ($edit['update']) {
-      workflow_types_save($edit);
-      drupal_set_message(t("The workflow mapping was saved."));
-      drupal_goto('admin/workflow');
-    }
-    else {
-     $output = workflow_types_form(); 
-    }
-    break;
 
     case 'actions':
       if (!is_numeric($arg3)) {
@@ -356,6 +337,11 @@ function workflow_page($op = NULL, $arg3 = null, $arg4 = null, $arg5 = null, $ar
       break;
 
     default:
+      if ($edit['update']) {
+        workflow_types_save($edit);
+        drupal_set_message(t("The workflow mapping was saved."));
+        drupal_goto('admin/workflow');
+      }
       $output = workflow_overview();   
   }
 
@@ -407,6 +393,8 @@ function workflow_overview() {
   else {
     $output .= theme('table', $header, $row);
   }
+  
+  $output .= workflow_types_form();
   
   return $output;
 }
@@ -584,8 +572,10 @@ function workflow_types_form() {
 	    array('data' => form_select('', $type, $value, $options))
 	    );
   }
-  $output = theme('table', $header, $row);
+  
+  $output .= theme('table', $header, $row);
   $output .= form_hidden('update', '1');
+  $output .= form_item('', '', t('Each node type may have a separate workflow.'));
   $output .= form_submit(t('Save Workflow Mapping'));
   
   return form($output);
