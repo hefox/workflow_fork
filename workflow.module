@@ -196,7 +196,7 @@ function workflow_nodeapi($node, $op) {
       break;
   }
 
-  return $output;
+  return $output ? $output : NULL;
 }
 
 /**
