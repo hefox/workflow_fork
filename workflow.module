@@ -1,13 +1,14 @@
 <?php
+/* $Id$ */
 
 /**
-* @file
-* Enables workflow management for nodes by allowing users to define states and transitions.
-*/
+ * @file
+ * Enables workflow management for nodes by allowing users to define states and transitions.
+ */
 
 /**
-* Implementation of hook_help().
-*/
+ * Implementation of hook_help().
+ */
 function workflow_help($section) {
   switch ($section) {
     case 'admin/modules#description':
@@ -25,18 +26,16 @@ function workflow_help($section) {
   }
 }
 
-
 /**
-* Implementation of hook_perm().
-*/
+ * Implementation of hook_perm().
+ */
 function workflow_perm() {
   return array('administer workflow');
 }
 
-
 /**
-* Implementation of hook_menu().
-*/
+ * Implementation of hook_menu().
+ */
 function workflow_menu($may_cache) {
   $items = array();
   $access = user_access('administer workflow');
@@ -70,19 +69,18 @@ function workflow_menu($may_cache) {
   return $items;
 }
 
-
 /**
-* Implementation of hook_nodeapi(). Summary of callbacks we can see (Drupal 4.5.1):
-*
-* add             edit           submit (from edit) preview (from edit)
-*                 load           load               load
-* validate        validate       validate           validate
-* form pre        form pre       fields             view
-* form post       form post      update             form pre
-* form admin      form admin                        form post
-* form param      form param                        form admin
-*                                                   form param
-*/
+ * Implementation of hook_nodeapi(). Summary of callbacks we can see (Drupal 4.5.1):
+ *
+ * add             edit           submit (from edit) preview (from edit)
+ *                 load           load               load
+ * validate        validate       validate           validate
+ * form pre        form pre       fields             view
+ * form post       form post      update             form pre
+ * form admin      form admin                        form post
+ * form param      form param                        form admin
+ *                                                   form param
+ */
 function workflow_nodeapi($node, $op) {
   static $editing;
   static $states;
@@ -192,24 +190,23 @@ function workflow_nodeapi($node, $op) {
 }
 
 /**
-* Implementation of hook_workflow()
-*/
+ * Implementation of hook_workflow()
+ */
 function workflow_workflow($op, $old_state, $new_state, $node) {
   switch ($op) {
-   case 'transition pre':
-    break;
+    case 'transition pre':
+     break;
    
-   case 'transition post':
-     // a transition has occurred; fire off actions associated with this transition
-     // an SQL guru could clean this up with a complicated JOIN
-     $tid = workflow_get_transition_id($old_state, $new_state);
-     if ($tid) {
-       $actions_this_tid = workflow_get_actions($tid);
-       if ($actions_this_tid && function_exists('actions_do')) {
-         actions_do(array_keys($actions_this_tid), $node);
-       }
-     }   
-   
+    case 'transition post':
+      // a transition has occurred; fire off actions associated with this transition
+      // an SQL guru could clean this up with a complicated JOIN
+      $tid = workflow_get_transition_id($old_state, $new_state);
+      if ($tid) {
+        $actions_this_tid = workflow_get_actions($tid);
+        if ($actions_this_tid && function_exists('actions_do')) {
+          actions_do(array_keys($actions_this_tid), $node);
+        }
+      }      
    break; 
   } 
 }
@@ -340,8 +337,7 @@ function workflow_page($op = NULL) {
       break;
 
     default:
-      $output = workflow_overview();
-    
+      $output = workflow_overview();   
   }
 
   print theme('page', $output);
@@ -355,7 +351,6 @@ function workflow_page($op = NULL) {
  *   HTML form.
  *
  */
-
 function workflow_overview() {
   $result = db_query("SELECT * FROM {workflows}");
   $header = array(array('data' => t('Name')), array('data' => 'Operations', 'colspan' => '4'));
@@ -388,7 +383,7 @@ function workflow_overview() {
     $output = t('No workflows have been added. Would you like to') . ' ' . l(t('add a workflow'), 'admin/workflow/add') . '?';
   }
   else {
-  $output .= theme('table', $header, $row);
+    $output .= theme('table', $header, $row);
   }
   
   return $output;
@@ -854,7 +849,7 @@ function workflow_transition_save($sid, $edit) {
        $prev_sid = intval(substr($key, 5));
        if ($prev_sid > 0) {
          if (isset($preexisting[$prev_sid][$sid]) && $prev_sid > 0) {
-//     if (array_key_exists($sid, $preexisting[$prev_sid])) {
+//       if (array_key_exists($sid, $preexisting[$prev_sid])) {
          // we already have this one in the database, so ignore it
            unset($preexisting[$prev_sid][$sid]);
            if (!$preexisting[$prev_sid]) {
@@ -871,14 +866,17 @@ function workflow_transition_save($sid, $edit) {
      // we want to move from state $sid into state $target_sid
      case strstr($key, 'to_') && $val:
        $target_sid = intval(substr($key, 3));
-       if (array_key_exists($target_sid, $preexisting[$sid])) {
-         unset($preexisting[$sid][$target_sid]);
-         if (!$preexisting[$sid]) {
-           unset($preexisting[$sid]);
+       if ($target_sid > 0) {
+//       if (array_key_exists($target_sid, $preexisting[$sid])) {
+         if (isset($preexisting[$sid][$target_sid])) {
+           unset($preexisting[$sid][$target_sid]);
+           if (!$preexisting[$sid]) {
+             unset($preexisting[$sid]);
+           }
          }
-       }
-       else {
-         db_query("INSERT INTO {workflow_transitions} (tid, sid, target_sid) VALUES (%d, %d, %d)", db_next_id('workflow_transitions'), $sid, $target_sid);
+         else {
+           db_query("INSERT INTO {workflow_transitions} (tid, sid, target_sid) VALUES (%d, %d, %d)", db_next_id('workflow_transitions'), $sid, $target_sid);
+         }
        }      
        break; 
     }
@@ -937,11 +935,11 @@ function workflow_allowable_transitions($sid, $direction = 'to') {
  *
  */
 function workflow_types_save($edit) {
-   $nodetypes = node_list();
-   db_query("DELETE FROM {workflow_type_map}");
-   foreach ($nodetypes as $type) {
+  $nodetypes = node_list();
+  db_query("DELETE FROM {workflow_type_map}");
+  foreach ($nodetypes as $type) {
     db_query("INSERT INTO {workflow_type_map} (type, wid) VALUES ('%s', %d)", $type, intval($edit[$type]));
-   }
+  }
 }
 
 function workflow_types_delete($wid) {
