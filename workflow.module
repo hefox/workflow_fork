@@ -1,0 +1,97 @@
+<?php
+// $Id$
+
+function workflow_system($field){
+  $system["description"] = t("Sends content that has been declined in the moderation process back to the contributing user.");
+  $system["admin_help"] = t("To be written.");
+  return $system[$field];
+}
+
+function workflow_workflow($mode, $node) {
+
+  // Fetch comments
+  $query = "SELECT c.cid as cid, c.pid, c.nid, c.subject, c.comment, c.timestamp, u.uid, u.name, u.data, c.score, c.users FROM users u INNER JOIN comments c ON c.uid = u.uid AND c.nid = %d AND c.status = 0";
+  $query .= " GROUP BY c.cid, c.pid, c.nid, c.subject, c.comment, c.timestamp, u.uid, u.name, u.data, c.score, c.users";
+  $query .= " ORDER BY c.timestamp";
+  $result = db_query($query, $node->nid);
+  $comment_num = db_num_rows($result);
+  while ($comment = db_fetch_object($result)) {
+    $comments[$comment->cid] = $comment;
+  }
+
+  switch($mode) {
+    case "node approved":
+      global $base_url;
+      $body = wordwrap(t("Your $node->type with the title »%title« has been approved in the moderation process. You can view it here: %site/node/view/%id", array("%site" => $base_url , "%id" => $node->nid,  "%title" => $node->title)));
+      break;
+    case "node declined":
+    case "node expired":
+      $body = wordwrap(t("Your $node->type with the title »%title« has been declined in the moderation process.", array("%title" => $node->title)));
+      $body .= wordwrap(t("For your convenience your $node->type is attached below."));
+      if($comment_num) {
+        $body .= wordwrap(t("You may want to change and resubmit it according to the comments which were made by the moderators. The comments are also attached."));
+        $body .= workflow_format_node($node);
+        $body .= workflow_format_comments($comments);
+      }
+      else {
+        $body .= wordwrap(t("You may want to change and resubmit it."));
+        $body .= workflow_format_node($node);
+      }
+      break;
+    case "revision approved":
+      $body = wordwrap(t("Your changes to the $node->type with the title »%title« have been approved in the moderation process. You can view the node here: %site/node/view/%id", array("%site" => $base_url , "%id" => $node->nid,  "%title" => $node->title)));
+      break;
+    case "revision declined":
+    case "revision expired":
+      $body = wordwrap(t("Your changes to the $node->type with the title »%title« have been declined in the moderation process.", array("%title" => $node->title)));
+      $body .= wordwrap(t("For your convenience your revision of the $node->type is attached below."));
+      if($comment_num) {
+        $body .= wordwrap(t("You may want to change and resubmit it according to the comments which were made by the moderators. The comments are also attached."));
+        $body .= workflow_format_node($node);
+        $body .= workflow_format_comments($comments);
+      }
+      else {
+        $body .= wordwrap(t("You may want to change and resubmit it."));
+        $body .= workflow_format_node($node);
+      }
+      break;
+  }
+
+  $from = variable_get("site_mail", ini_get("sendmail_from"));
+  $user = user_load(array("uid" => $node->uid));
+  $subject = variable_get("site_name", "drupal") ." ". t("Your $node->type »%title«", array ("%title" => $node->title));
+  $to = "$user->name <". $user->mail .">";
+  $body = t("Greetings") ." ". $user->name .",\n\n$body";
+  user_mail($to, $subject, $body, "From: $from\nReply-to: $from\nX-Mailer: Drupal\nReturn-path: <$from>\nErrors-to: $from\n");
+  watchdog("special", "moderation: mailed '$user->name' about moderation result.");
+}
+
+function workflow_format_node($node) {
+
+  $text = "\n\n";
+  $text .= $node->title ."\n\n";
+  // Format the body?
+  $text .= $node->body ."\n\n";
+
+  return $text;
+}
+
+function workflow_format_comments($comments) {
+
+  $structure = comment_thread_structure($comments, 0, 0, array());
+
+  $output = "";
+  foreach ($structure as $cid => $depth) {
+    $str = "";
+    for($i = 1 ; $i <= $depth ; $i++) {
+      $str .= "  ";
+    }
+    $output .= $str . check_output($comments[$cid]->subject) ."\n";
+    $output .= $str . t("by:") . check_output($comments[$cid]->name) ."\n\n";
+    $output .= $str . wordwrap(check_output($comments[$cid]->comment), 75 - 2 * $depth) ."\n\n\n";
+  }
+
+  return $output;
+}
+
+?>
