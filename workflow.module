@@ -130,7 +130,7 @@ function workflow_nodeapi($node, $op) {
           if (isset($_POST['edit']['_workflow'])) {
             $sid = $_POST['edit']['_workflow'];
           }
-          $output = form_select(t('Workflow'), '_workflow', $sid, $options);
+          $output = form_select(workflow_get_name($wid), '_workflow', $sid, $options);
         }
         // note that no form element will be added if
         // there are no allowable transitions from our current state
