@@ -22,7 +22,7 @@ function workflow_workflow($mode, $node) {
   switch($mode) {
     case "node approved":
       global $base_url;
-      $body = wordwrap(t("Your $node->type with the title »%title« has been approved in the moderation process. You can view it here: %site/node/view/%id", array("%site" => $base_url , "%id" => $node->nid,  "%title" => $node->title)));
+      $body = wordwrap(t("Your $node->type with the title »%title« has been approved in the moderation process. You can view it here: %url", array("%url" => $base_url ."/node/view/$node->nid",  "%title" => $node->title)));
       break;
     case "node declined":
     case "node expired":
@@ -39,7 +39,7 @@ function workflow_workflow($mode, $node) {
       }
       break;
     case "revision approved":
-      $body = wordwrap(t("Your changes to the $node->type with the title »%title« have been approved in the moderation process. You can view the node here: %site/node/view/%id", array("%site" => $base_url , "%id" => $node->nid,  "%title" => $node->title)));
+      $body = wordwrap(t("Your changes to the $node->type with the title »%title« have been approved in the moderation process. You can view the node here: %url", array("%url" => $base_url ."/node/view/$node->nid",  "%title" => $node->title)));
       break;
     case "revision declined":
     case "revision expired":
