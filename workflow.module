@@ -152,41 +152,41 @@ function workflow_nodeapi($node, $op, $arg = 0) {
     break;
 
     case 'insert':
-    $nid = intval($node->nid);
-    $sid = intval($_POST['edit']['_workflow']);
-    // create record of nid-sid mapping
-    db_query("UPDATE {workflow_node} SET sid = %d WHERE nid = %d", $sid, $nid);           
+      $nid = intval($node->nid);
+      $sid = intval($_POST['edit']['_workflow']);
+      // create record of nid-sid mapping
+      db_query("INSERT INTO {workflow_node} (nid, sid) VALUES (%d, %d)", $nid, $sid);
     break;
     
     case 'update':
-    // pull last known state for this node
-    $nid = intval($node->nid);
-    $data = db_fetch_object(db_query("SELECT sid FROM {workflow_node} WHERE nid = %d", $nid));
+      // pull last known state for this node
+      $nid = intval($node->nid);
+      $data = db_fetch_object(db_query("SELECT sid FROM {workflow_node} WHERE nid = %d", $nid));
     
-    // TODO: need to handle special case of nodes that pre-exist workflow module here
-    // these nodes might be autoassigned a given state, for example
-    // currently we set the state to 0 if it does not exist yet
-    $old_sid = $data->sid ? $data->sid : 0;
+      // TODO: need to handle special case of nodes that pre-exist workflow module here
+      // these nodes might be autoassigned a given state, for example
+      // currently we set the state to 0 if it does not exist yet
+      $old_sid = $data->sid ? $data->sid : 0;
     
-    // compare it with the state we are now in
-    $sid = intval($_POST['edit']['_workflow']);
-    if ( $sid == $old_sid ) return; // no transition has occurred
+      // compare it with the state we are now in
+      $sid = intval($_POST['edit']['_workflow']);
+      if ( $sid == $old_sid ) return; // no transition has occurred
     
-    // fire off a callback indicating a transition is about to occur
-    // modules may veto the transition by returning FALSE from the callback
-    $result = module_invoke_all('workflow', 'transition pre', $old_sid, $sid, $node);
-    if (!in_array(FALSE, $result)) {
-      if ($data) {
-        db_query("UPDATE {workflow_node} SET sid = %d WHERE nid = %d", $sid, $nid);        
-      }
-      else {
-        db_query("INSERT INTO {workflow_node} (nid, sid) VALUES (%d, %d)", $nid, $sid);
-      }
+      // fire off a callback indicating a transition is about to occur
+      // modules may veto the transition by returning FALSE from the callback
+      $result = module_invoke_all('workflow', 'transition pre', $old_sid, $sid, $node);
+      if (!in_array(FALSE, $result)) {
+        if ($data) {
+          db_query("UPDATE {workflow_node} SET sid = %d WHERE nid = %d", $sid, $nid);        
+        }
+        else {
+          db_query("INSERT INTO {workflow_node} (nid, sid) VALUES (%d, %d)", $nid, $sid);
+        }
       
-      // notify modules that transition has occurred
-      // actions should take place in response to this callback, not the previous one
-      module_invoke_all('workflow', 'transition post', $old_sid, $sid, $node);
-    }
+        // notify modules that transition has occurred
+        // actions should take place in response to this callback, not the previous one
+        module_invoke_all('workflow', 'transition post', $old_sid, $sid, $node);
+      }
 
     break;
   }
@@ -214,81 +214,6 @@ function workflow_workflow($op, $old_state, $new_state, $node) {
      }   
    
    break; 
-  } 
-}
-
-/**
-* Implementation of hook_actionapi()
-*/
-function workflow_actionapi($op, $context) {
-  switch ($op) {
-   case 'list actions':
-     $function = 'workflow_send_email';
-     $description = t('Send email');
-     $type = t('Email');
-     return array(array($function, $description, $type));
-   break; 
-  }  
-}
-
-
-/**
-* Implementation of a Drupal action.
-* This is an example action. Actions should live in the modules
-* for which the actions apply. For example, node actions should
-* be exposed by node.module.
-*
-*/
-function workflow_send_email($op, $edit = array(), $node = array()) {
-  switch($op) {
-    // return an HTML config form for the action
-   case 'form':
-     // default values for form
-     if (!array_key_exists('recipient', $edit)) $edit['recipient'] = '';
-     if (!array_key_exists('subject', $edit)) $edit['subject'] = '';
-     if (!array_key_exists('message', $edit)) $edit['message'] = '';
-     
-     // add form components
-     $output  = form_textfield(t('Recipient'), 'recipient', $edit['recipient'], '20', '254', t('The email address to which the message should be sent'));
-     $output .= form_textfield(t('Subject'), 'subject', $edit['subject'], '20', '254', t('The subject of the message'));
-     $output .= form_textarea(t('Message'), 'message', $edit['message'], '80', '20', t('The message that should be sent'));
-     return $output;
-   break;
-   
-   // validate the HTML form
-   case 'validate':
-     $errors = array();
-
-     if (!valid_email_address($edit['recipient'])) {
-       $errors['recipient'] = t('Please enter a valid email address.');       
-    }
-    foreach ($errors as $name => $message) {
-      form_set_error($name, $message);
-    }
-
-     return count($errors) == 0;
-   break;
-   
-   // process the HTML form to store configuration
-   case 'submit':
-      $params = array(
-      'recipient' => $edit['recipient'], 
-      'subject'   => $edit['subject'], 
-      'message'   => $edit['message']);
-     return $params;
-   break;
-   
-   case 'do':
-     $recipient = $edit['recipient'];
-     $subject = $edit['subject'];
-     $message = $edit['message'];
-     if (user_mail($recipient, $subject, $message, '')) {
-       watchdog('action', t('Sent email to' . " $recipient"));
-     }
-     else {
-        watchdog('error', t('Unable to send email to' . " $recipient"));
-     }
-   break;
   } 
 }
 
@@ -600,39 +525,44 @@ function workflow_types_form($edit) {
 function workflow_actions_form($wid, $edit) {
   $wf = workflow_get_name($wid);
   $states = workflow_get_states($wid);
-  $actions = action_get_configured_actions();
+  $actions = action_get_all_actions();
   $options = array(t('None'));
   foreach ($actions as $aid => $action) {
     $options[$aid] = $action['description'];
-  }  
+  }
   $header = array(array('data' => t('Transition'), 'colspan' => '3'), array('data' => t('Actions')));
   $row = array();
-  
+
   foreach ($states as $sid => $state) {
     $allowable_to = workflow_allowable_transitions($sid);
-    $inner_row = array();
     $tid = 0;
     $actions_this_tid = array();
-    
+
     // we'll create a row for each allowable transition
     foreach ($allowable_to as $to_sid => $name) {
+      $inner_row = array();
       $tid = workflow_get_transition_id($sid, $to_sid);
+
+      // get the actions that are already assigned to this transition
       $actions_this_tid = workflow_get_actions($tid);
       $available_options = $options;
+
       // list each action already associated with this transition
       foreach ($actions_this_tid as $aid => $act_name) {
-       $inner_row[] = array(array('data' => $act_name), array('data' => l(t('remove'), "admin/workflow/actions/$wid/remove/$tid/$aid")));
-       unset($available_options[$aid]);
+        $inner_row[] = array(array('data' => $act_name), array('data' => l(t('remove'), "admin/workflow/actions/$wid/remove/$tid/$aid")));
+        unset($available_options[$aid]);
       }
+
       if (count($available_options) > 1) {
         $inner_row[] = array(array('data' => form_select('', 'action', t('None'), $available_options)), array('data' => form_hidden('tid', $tid) . form_submit(t('Add'))));
       }
+
+      $action_table = form(theme('table', array(), $inner_row));
+      $row[] = array(array('data' => $state, 'style' => 'vertical-align: top'), array('data' => '&nbsp;&nbsp;--&gt;&nbsp;&nbsp;', 'style' => 'vertical-align: top'), array('data' => $name, 'style' => 'vertical-align: top'), $action_table);
     }
-    $action_table = form(theme('table', array(), $inner_row));
-    $row[] = array(array('data' => $state, 'style' => 'vertical-align: top'), array('data' => '&nbsp;&nbsp;--&gt;&nbsp;&nbsp;', 'style' => 'vertical-align: top'), array('data' => $name, 'style' => 'vertical-align: top'), $action_table);
   }
   $output = theme('table', $header, $row);
-  
+
   return $output;
 }
 
