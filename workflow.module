@@ -293,7 +293,7 @@ function workflow_page($op = NULL) {
         else {
           $wf = workflow_get_name($wid);
           $output = workflow_delete($wid);
-          drupal_set_message(t("The workflow '$wf->name' was deleted."));
+          drupal_set_message(t('The workflow') . " '$wf' " . t('was deleted.'));
         }
         drupal_goto('admin/workflow');
       }
@@ -692,10 +692,10 @@ function workflow_update_name($wid, $wf_name) {
 function workflow_delete($wid) {
   $wid = intval($wid);
   $wf = workflow_get_name($wid);
-  $result = db_query("SELECT * FROM {workflow_states} WHERE wid = %d", $wid);
+  $result = db_query("SELECT sid FROM {workflow_states} WHERE wid = %d", $wid);
   while ($data = db_fetch_object($result)) {
+    // delete the state and any associated transitions and actions
     workflow_state_delete($data->sid);
-    workflow_transition_delete($data->sid);
     db_query("DELETE FROM {workflow_node} WHERE sid = %d", $data->sid);
   }
   workflow_types_delete($wid);
@@ -753,7 +753,9 @@ function workflow_state_create($wid, $state_name) {
 }
 
 /**
- * Delete a workflow state from the database.
+ * Delete a workflow state from the database, including any
+ * transitions the state was involved in and any associations
+ * with actions that were made to that transition.
  *
  * @param $sid
  *   The ID of the state to delete.
@@ -769,8 +771,9 @@ function workflow_state_delete($sid) {
 
   // delete the transitions and associated actions
   foreach ($preexisting as $from => $array) {
-    foreach ($array as $target_id => $ignore) {
-      workflow_transition_delete($from, $target_id); 
+    foreach (array_keys($array) as $target_id) {
+      $tid = workflow_get_transition_id($from, $target_id);
+      workflow_transition_delete($tid); 
     } 
   }
 
@@ -810,24 +813,20 @@ function workflow_transitions_load($sid) {
 /**
  * Delete any transitions (and actions associated with that transition) from the database.
  *
- * @param $sid
- *   The ID of the beginning state.
- * @param $target_sid
- *   The ID of the ending state.
+ * @param $tid
+ *   The ID of the transition.
  *
  */
- function workflow_transition_delete($sid, $target_sid) {
+ function workflow_transition_delete($tid) {
    // delete any actions associated with this transition
-   $tid = workflow_get_transition_id($sid, $target_sid);
    $actions = workflow_get_actions($tid);
-   foreach ($actions as $aid => $desc) {
+   foreach (array_keys($actions) as $aid) {
      workflow_actions_remove($tid, $aid);
    }
    
-   // delete the transition
-   db_query("DELETE FROM {workflow_transitions} WHERE tid = %d", $tid);
+   db_query("DELETE FROM {workflow_transitions} WHERE tid = %d", $tid);   
  }
-
+ 
 /**
  * Save allowable transitions for a given workflow state.
  *
@@ -850,19 +849,22 @@ function workflow_transition_save($sid, $edit) {
         
    switch ($key) {
       
-      // we want to move from state prev_sid into state $sid
+     // we want to move from state prev_sid into state $sid
      case strstr($key, 'from_') && $val:
        $prev_sid = intval(substr($key, 5));
-       if (array_key_exists($sid, $preexisting[$prev_sid])) {
+       if ($prev_sid > 0) {
+         if (isset($preexisting[$prev_sid][$sid]) && $prev_sid > 0) {
+//     if (array_key_exists($sid, $preexisting[$prev_sid])) {
          // we already have this one in the database, so ignore it
-         unset($preexisting[$prev_sid][$sid]);
-         if (!$preexisting[$prev_sid]) {
-           unset($preexisting[$prev_sid]);
-         } 
-       }
-       else {
-         // this is a new transition; save it to the database
-         db_query("INSERT INTO {workflow_transitions} (tid, sid, target_sid) VALUES (%d, %d, %d)", db_next_id('workflow_transitions'), $prev_sid, $sid);
+           unset($preexisting[$prev_sid][$sid]);
+           if (!$preexisting[$prev_sid]) {
+             unset($preexisting[$prev_sid]);
+           } 
+         }
+         else {
+           // this is a new transition; save it to the database
+           db_query("INSERT INTO {workflow_transitions} (tid, sid, target_sid) VALUES (%d, %d, %d)", db_next_id('workflow_transitions'), $prev_sid, $sid);
+         }
        }
        break; 
        
@@ -884,8 +886,9 @@ function workflow_transition_save($sid, $edit) {
   
   // whatever is left in preexisting should be deleted from the database  
   foreach ($preexisting as $from => $array) {
-    foreach ($array as $target_sid => $ignore) {
-      workflow_transition_delete($from, $target_sid);
+    foreach (array_keys($array) as $target_sid) {
+      $tid = workflow_get_transition_id($from, $target_sid);
+      workflow_transition_delete($tid);
      } 
   }
 }
