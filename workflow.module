@@ -126,6 +126,10 @@ function workflow_nodeapi($node, $op) {
         if ($transitions) { // there are allowable transitions from our current state
           $options = array($sid => $states[$sid]) + $transitions;
           ksort($options);
+          //array_shift($options); // lose the creation state
+          if (isset($_POST['edit']['_workflow'])) {
+            $sid = $_POST['edit']['_workflow'];
+          }
           $output = form_select(t('Workflow'), '_workflow', $sid, $options);
         }
         // note that no form element will be added if
