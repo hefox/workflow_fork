@@ -14,7 +14,7 @@ Workflows are made up of workflow states.
 
 Moving from one state to another is called a transition.
 
-Actions are associated with transitions (action.module must be
+Actions are associated with transitions (actions.module must be
 installed for this).
 
 ********************************************************************
@@ -89,7 +89,7 @@ Now let's tell Drupal which node types should use this workflow. Click
 on the "type mapping" tab. Let's assign the Draft-Done workflow
 to the story node type and click Save Workflow Mapping.
 
-Now we could add an action (previously configured using the action
+Now we could add an action (previously configured using the actions
 module). If you have not configured your action yet, here's a quick
 guide:
 
