@@ -221,7 +221,7 @@ function workflow_workflow($op, $old_state, $new_state, $node) {
  *   Themed page.
  *
  */
-function workflow_page($op = NULL) {
+function workflow_page($op = NULL, $arg3 = null, $arg4 = null, $arg5 = null, $arg6 = null) {
   $edit = array_key_exists('edit', $_POST) ? $_POST['edit'] : array();
   $output = '';
   switch ($op) {
@@ -238,7 +238,7 @@ function workflow_page($op = NULL) {
       break;
     
     case 'edit':
-      $wid = arg(3);
+      $wid = $arg3;
       if (array_key_exists('wf_name', $edit) && $edit['wf_name'] != '') {
         workflow_update_name($wid, $edit['wf_name']);
         drupal_set_message(t('Workflow name updated to') . " '" . $edit['wf_name'] . "'.");
@@ -251,7 +251,7 @@ function workflow_page($op = NULL) {
       break;
 
     case 'state':
-      $wid = arg(3);
+      $wid = $arg3;
       if (array_key_exists('state_name', $edit) && $edit['state_name'] != '' && is_numeric($wid))  {
         $state_name = $edit['state_name'];
         workflow_state_create($wid, $state_name);
@@ -264,22 +264,22 @@ function workflow_page($op = NULL) {
       break;
 
     case 'transition':
-      $sid = arg(4);
+      $sid = $arg4;
       $state = workflow_get_state($sid);
       if ($edit['sid']) {
         workflow_transition_save($sid, $edit);
-        drupal_set_message(t("Allowable transitions for '$state' were saved."));
+        drupal_set_message(t('Allowable transitions for') . ' ' . $state . ' ' . t('were saved.'));
         drupal_goto('admin/workflow');
       }
       else {
-        $wid = arg(3);
+        $wid = $arg3;
         $output = workflow_transition_form($wid, $sid);
       }
       break;
     
     case 'delete':
-      $sid = arg(4);
-      $wid = arg(3);
+      $wid = $arg3;
+      $sid = $arg4;
       if ($edit['confirm']) {
         if ($sid) {
           $states = workflow_get_states($wid);
@@ -316,13 +316,13 @@ function workflow_page($op = NULL) {
     break;
 
     case 'actions':
-      if (!is_numeric(arg(3))) {
+      if (!is_numeric($arg3)) {
         drupal_goto('admin/workflow');
       }
-      $wid = intval(arg(3)); 
-      if (arg(4) == 'remove' && is_numeric(arg(5)) && is_numeric(arg(6))) {
-        $tid = intval(arg(5));
-        $aid = intval(arg(6));
+      $wid = intval($arg3); 
+      if ($arg4 == 'remove' && is_numeric($arg5)) {
+        $tid = intval($arg5);
+        $aid = $arg6;
         $actions = workflow_get_actions($tid);
         workflow_actions_remove($tid, $aid);
         drupal_set_message(t('The action') . " '$actions[$aid]' " . t('has been removed.'));
@@ -355,17 +355,7 @@ function workflow_overview() {
   $result = db_query("SELECT * FROM {workflows}");
   $header = array(array('data' => t('Name')), array('data' => 'Operations', 'colspan' => '4'));
   $row = array();
-
-  // hardcoded default workflow
-  // this should be moved into the database definitions
-  /*
-  $row[] = array(array('data' => t('Default workflow')), array('data' => '', 'colspan' => '3' ));
-  $row[] = array(array('data' => t('draft') . ' (' . l(t('transitions'), 'admin/workflow/transition/0/1') . ')<br />' .
-  t('review') . ' (' . l(t('transitions'), 'admin/workflow/transition/0/1') . ')<br />' .
-  t('published') . ' (' . l(t('transitions'), 'admin/workflow/transition/0/1') . ')<br />'),
-  array('data' => '', 'colspan' => '3'));
-  */
-
+  
   while ($data = db_fetch_object($result)) {
     $states = workflow_get_states($data->wid);
     $row[] = array(array('data' => $data->name), array('data' => l(t('add state'), "admin/workflow/state/$data->wid")), array('data' => $states ? l(t('actions'), "admin/workflow/actions/$data->wid") : ''), array('data' => l(t('edit'), "admin/workflow/edit/$data->wid")), array('data' => l(t('delete'), "admin/workflow/delete/$data->wid")));
