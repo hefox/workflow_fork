@@ -388,7 +388,7 @@ function workflow_overview() {
   }
   
   if (!$row) {
-    $output = t('No workflows have been added. Would you like to') . ' ' . l(t('add a workflow'), 'admin/workflow/add') . '?';
+    $output = '<p>' . t('No workflows have been added. Would you like to %add_a_workflow?', array('%add_a_workflow' => l(t('add a workflow'), 'admin/workflow/add'))) . '</p>';
   }
   else {
     $output .= theme('table', $header, $row);
@@ -433,7 +433,7 @@ function workflow_add_form($edit, $add = TRUE) {
  */
 function workflow_delete_form($wid) {
   $wf = workflow_get_name($wid);
-  $output .= form_item(t('Confirm deletion'), t('Really delete workflow') . " '" . $wf . "' (" . t('and all the states it contains') . ')? ' . t('All nodes that have a workflow state associated with this workflow will have those workflow states removed.'));
+  $output .= form_item(t('Confirm deletion'), t("Really delete workflow '%wf' (and all the states it contains)? All nodes that have a workflow state associated with this workflow will have those workflow states removed.", array('%wf' => $wf)));
 	$output .= form_hidden('confirm', 1);
 	$output .= form_submit(t('Delete'));
 
@@ -491,7 +491,7 @@ function workflow_state_add_form($wid, $edit) {
  */
 function workflow_state_delete_form($wid, $sid) {
   $states = workflow_get_states($wid);
-  $output .= form_item(t('Confirm deletion'), t('Really delete workflow state') . " '" . $states[$sid] . "' " .t('(and all its transitions)') . '?');
+  $output .= form_item(t('Confirm deletion'), t("Really delete workflow state '%state' (and all of its transitions)?", array('%state' => $states[$sid])));
 	$output .= form_hidden('confirm', 1);
 	$output .= form_submit(t('Delete'));
 
@@ -528,11 +528,11 @@ function workflow_transition_form($wid, $sid) {
   $arrow = '&nbsp;&nbsp;--&gt;&nbsp;';
   $state_cell = $states[$sid];
   $header = array(
-    array('data' => t('States that may move to state') . " '$state_cell'"), 
+    array('data' => t("States that may move to state '%state_cell'", array('%state_cell' => $state_cell))), 
     array('data' => '', 'style' => 'text-align: center'), 
     array('data' => 'State', 'style' => 'text-align: center'), 
     array('data' => '', 'style' => 'text-align: center'), 
-    array('data' => t('States that state') . " '$state_cell' " . t('may move to'))
+    array('data' => t("States that state '%state_cell' may move to", array('%state_cell' => $state_cell)))
     );
   $row[] = array(
     array('data' => $from_form), 
@@ -542,7 +542,7 @@ function workflow_transition_form($wid, $sid) {
     array('data' => $to_form)
     );
 
-  $output = "<h3>Transitions for state '$states[$sid]'</h3>";
+  $output = '<h3>' . t("Transitions for state '%state'", array('%state' => $states[$sid])) . '</h3>';
   $output .= theme('table', $header, $row);
   $output .= form_hidden('sid', $sid);
   $output .= form_submit(t('Save Transitions'));
