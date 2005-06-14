@@ -101,7 +101,7 @@ function workflow_nodeapi($node, $op) {
       next($states); // creation state
       $initial_state_id = key($states);
        
-      if (isset($editing)) { // we are editing a node
+      if (isset($editing) && isset($node->nid)) { // we are editing a node
         // what is the current state? need to pull this
         $data = db_fetch_object(db_query("SELECT sid FROM {workflow_node} WHERE nid = %d", intval($node->nid)));
         $sid = $data->sid ? $data->sid : $initial_state_id;
