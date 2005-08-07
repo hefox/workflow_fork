@@ -78,7 +78,6 @@ function workflow_menu($may_cache) {
 function workflow_nodeapi($node, $op) {
   static $editing;
   static $states;
-  $output = '';
   switch ($op) {
     
     // load is called when nodes are edited or submitted
@@ -196,7 +195,7 @@ function workflow_nodeapi($node, $op) {
       break;
   }
 
-  return $output ? $output : NULL;
+  return isset($output) ? $output : NULL;
 }
 
 /**
