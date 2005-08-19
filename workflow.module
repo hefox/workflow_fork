@@ -193,6 +193,12 @@ function workflow_nodeapi($node, $op) {
         module_invoke_all('workflow', 'transition post', $old_sid, $sid, $node);
       }
       break;
+      
+    case 'delete':
+      // the node has been deleted, so delete its state information
+      db_query("DELETE FROM {workflow_node} WHERE nid = %d", $node->nid); 
+      break;
+
   }
 
   return isset($output) ? $output : NULL;
@@ -299,7 +305,7 @@ function workflow_page($op = NULL, $arg3 = null, $arg4 = null, $arg5 = null, $ar
         }
         else {
           $wf = workflow_get_name($wid);
-          $output = workflow_delete($wid);
+          $output = workflow_deletewf($wid);
           drupal_set_message(t('The workflow') . " '$wf' " . t('was deleted.'));
         }
         drupal_goto('admin/workflow');
@@ -721,7 +727,7 @@ function workflow_update_name($wid, $wf_name) {
  *   The ID of the workflow.
  *
  */
-function workflow_delete($wid) {
+function workflow_deletewf($wid) {
   $wid = intval($wid);
   $wf = workflow_get_name($wid);
   $result = db_query("SELECT sid FROM {workflow_states} WHERE wid = %d", $wid);
