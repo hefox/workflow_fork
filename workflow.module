@@ -569,11 +569,11 @@ function workflow_types_form() {
     $type_map[$data->type] = $data->wid;
   }
   $options = $workflows;
-  $nodetypes = node_list(); 
-  foreach ($nodetypes as $type) {
+  $nodetypes = node_get_types(); 
+  foreach ($nodetypes as $type => $name) {
     $value = $type_map[$type];
 	  $row[] = array(
-	    array('data' => node_invoke($type, 'node_name')), 
+	    array('data' => $name),
 	    array('data' => form_select('', $type, $value, $options))
 	    );
   }
@@ -1000,9 +1000,9 @@ function workflow_allowable_transitions($sid, $direction = 'to') {
  *
  */
 function workflow_types_save($edit) {
-  $nodetypes = node_list();
+  $nodetypes = node_get_types();
   db_query("DELETE FROM {workflow_type_map}");
-  foreach ($nodetypes as $type) {
+  foreach ($nodetypes as $type => $name) {
     db_query("INSERT INTO {workflow_type_map} (type, wid) VALUES ('%s', %d)", $type, intval($edit[$type]));
   }
 }
