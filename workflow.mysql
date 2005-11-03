@@ -15,6 +15,7 @@ CREATE TABLE `workflow_states` (
   KEY `sysid` (`sysid`)
 ) TYPE=MyISAM;
 
+
 # --------------------------------------------------------
 
 #
@@ -25,6 +26,7 @@ CREATE TABLE `workflow_transitions` (
   `tid` int(10) unsigned NOT NULL default '0',
   `sid` int(10) unsigned NOT NULL default '0',
   `target_sid` int(10) unsigned NOT NULL default '0',
+  `roles` varchar(60) default NULL,
   PRIMARY KEY  (`tid`),
   KEY `sid` (`sid`),
   KEY `target_sid` (`target_sid`)
@@ -63,8 +65,11 @@ CREATE TABLE `workflow_type_map` (
 CREATE TABLE `workflow_node` (
   `nid` int(10) unsigned NOT NULL default '0',
   `sid` int(10) unsigned NOT NULL default '0',
+  `uid` int(10) unsigned NOT NULL default '0',
+  `start` timestamp NOT NULL default CURRENT_TIMESTAMP on update CURRENT_TIMESTAMP,
+  PRIMARY KEY  (`nid`,`sid`,`uid`,`start`),
   KEY `nid` (`nid`,`sid`)
-) TYPE=MyISAM;
+) ENGINE=MyISAM;
 
 # --------------------------------------------------------
 

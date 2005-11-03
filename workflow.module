@@ -1,10 +1,5 @@
 <?php
-/* $Id$ */
-
-/**
- * @file
- * Enables workflow management for nodes by allowing users to define states and transitions.
- */
+// $Id$
  
 define('WORKFLOW_CREATION', 1);
 
@@ -21,8 +16,8 @@ function workflow_help($section) {
       return t('To get started, provide a name for your workflow. This name will be used as a label when the workflow status is shown during node editing.');
     case strstr($section, 'admin/workflow/state'):
       return t('Enter the name for a state in your workflow. For example, if you were doing a meal workflow it may include states like <em>shop</em>, <em>prepare food</em>, <em>eat</em>, and <em>clean up</em>.');
-    case strstr($section, 'admin/workflow/actions'):
-      return t('Use this page to set actions to happen when transitions occur. To configure actions, use the actions module.');
+    case strstr($section, 'admin/workflow/actions') && (sizeof($section) == 22):
+      return t('Use this page to set actions to happen when transitions occur. To %conf_actions, use the actions module.', array('%conf_actions' => l('configure actions', 'admin/actions')));
   }
 }
 
@@ -44,27 +39,59 @@ function workflow_menu($may_cache) {
     $items[] = array('path' => 'admin/workflow',
       'title'    => t('workflow'),
       'access'   => $access,
-      'callback' => 'workflow_page');
+      'callback' => 'workflow_overview');
 
-    $items[] = array('path' => 'admin/workflow/list',
-      'title'    => t('list'),
+    $items[] = array('path' => 'admin/workflow/edit',
+      'title'    => t('Edit workflow'),
+      'access'   => $access,
+      'type'     => MENU_CALLBACK,
+      'callback' => 'workflow_edit');
+
+      $items[] = array('path' => 'admin/workflow/list',
+      'title'    => t('List'),
       'access'   => $access,
       'weight'   => -10,
       'callback' => 'workflow_page',
       'type'     => MENU_DEFAULT_LOCAL_TASK);
 
     $items[] = array('path' => 'admin/workflow/add',
-      'title'    => t('add workflow'),
+      'title'    => t('Add workflow'),
       'access'   => $access,
-      'weight'   => -9,
+      'weight'   => -8,
+      'callback' => 'workflow_add_form',
       'type'     => MENU_LOCAL_TASK);
-  }
+      
+    $items[] = array('path' => 'admin/workflow/state',
+      'title'    => t('Add state'),
+      'access'   => $access,
+      'type'     => MENU_CALLBACK,
+      'callback' => 'workflow_state_add');
 
+    $items[] = array('path' => 'admin/workflow/delete',
+      'title'    => t('Delete workflow'),
+      'access'   => $access,
+      'type'     => MENU_CALLBACK,
+      'callback' => 'workflow_delete');
+
+    $items[] = array('path' => 'admin/workflow/actions',
+      'title'    => t('Workflow actions'),
+      'access'   => $access,
+      'type'     => MENU_CALLBACK,
+      'callback' => 'workflow_actions_form');
+      
+    $items[] = array('path' => 'admin/workflow/actions/remove',
+      'title'    => t('Workflow actions'),
+      'access'   => $access,
+      'type'     => MENU_CALLBACK,
+      'callback' => 'workflow_actions_remove_form');      
+  }
   return $items;
 }
 
 /**
- * Implementation of hook_nodeapi(). Summary of callbacks we can see (Drupal 4.5.1):
+ * Implementation of hook_nodeapi().
+ * TODO: update this table for 4.7 as it is out of date.
+ * Summary of callbacks we can see (Drupal 4.5.1):
  *
  * add             edit           submit (from edit) preview (from edit)
  *                 load           load               load
@@ -75,144 +102,178 @@ function workflow_menu($may_cache) {
  * form param      form param                        form admin
  *                                                   form param
  */
-function workflow_nodeapi($node, $op) {
-  static $editing;
-  static $states;
+function workflow_nodeapi(&$node, $op, $teaser = NULL, $page = NULL) {
   switch ($op) {
-    
-    // load is called when nodes are edited or submitted
-    case 'load':
-      // note to ourselves in static variable that this is an edit or submit
-      $editing = TRUE;
-      break;
-    
-    // form post is called when the node editing form has been put together
-    // and the node is asking for extra fields to be added at the bottom
-    case 'form post':
-      $wid = workflow_get_workflow_for_type($node->type);
-      if (!$wid) return; // workflow set to None for this type, or workflow not set up for this type
 
-      if (!isset($states)) {
-        $states = workflow_get_states($wid);
-      }
-    
-      reset($states);
-      next($states); // creation state
-      $initial_state_id = key($states);
-       
-      if (isset($editing) && isset($node->nid)) { // we are editing a node
-        // what is the current state? need to pull this
-        $data = db_fetch_object(db_query("SELECT sid FROM {workflow_node} WHERE nid = %d", intval($node->nid)));
-        $sid = $data->sid ? $data->sid : $initial_state_id;
-      
-        // what are the allowable transitions from this state?
-        $transitions = workflow_allowable_transitions($sid);
-            
-        // include our current state in case user wants to retain it
-        if ($transitions) { // there are allowable transitions from our current state
-          $options = array($sid => $states[$sid]) + $transitions;
-          ksort($options);
-          //array_shift($options); // lose the creation state
-          if (isset($_POST['edit']['_workflow'])) {
-            $sid = $_POST['edit']['_workflow'];
-          }
-          $output = form_select(workflow_get_name($wid), '_workflow', $sid, $options);
-        }
-        // note that no form element will be added if
-        // there are no allowable transitions from our current state
-      }
-      else { // we are adding a node
-        // figure out what the first state is for this workflow
-         $output = form_hidden('_workflow', $initial_state_id);
-      }
-      break;
-
-    case 'validate':
-      // if we are editing (not adding) a node and the form is on its way from the user to the db
-      // we check to make sure that the state being submitted exists for this type
-      // TODO: we should also check that the workflow state is a valid transition state from
-      // the node's previous workflow state to avoid workflow state change by manually editing HTML
-      if (isset($editing) && isset($_POST['edit']) && isset($_POST['edit']['_workflow'])) {
-        $wid = workflow_get_workflow_for_type($node->type);
-        $states = workflow_get_states($wid);
-        if (!isset($states[$node->_workflow])) {
-          form_set_error('format', t('The workflow state is invalid for this node type. Check workflow settings.'));
-        }
-      }
-      // else { // form is on its way out to user
-      // }
-      break;
+  // need to introduce setting [x] add workflow field to node form
+  case 'form':
+    return workflow_field_form($node);
+  
+  case 'load':
+    $node->_workflow = workflow_node_current_state($node);
+    break;
 
     case 'insert':
-      $nid = intval($node->nid);
-      $sid = intval($_POST['edit']['_workflow']);
-      // create record of nid-sid mapping
-      db_query("INSERT INTO {workflow_node} (nid, sid) VALUES (%d, %d)", $nid, $sid);
-      
-      // find the creation state id for this workflow
-      $creation_sid = db_result(db_query("SELECT w2.sid FROM {workflow_states} as w1, {workflow_states} as w2 WHERE w1.sid = %d AND w2.wid = w1.wid AND w2.sysid = %d", $sid, WORKFLOW_CREATION));
-      
-      // call the workflow callback, which the workflow module will catch
-      module_invoke_all('workflow', 'insert', $creation_sid, $sid, $node);
-      break;
-    
     case 'update':
-      // if no _workflow field is defined, do nothing
-      // if we implement same-state transitions this would need to change
-      if (!isset($_POST['edit']['_workflow'])) return;
-    
-      // pull last known state for this node
-      $nid = intval($node->nid);
-      $data = db_fetch_object(db_query("SELECT sid FROM {workflow_node} WHERE nid = %d", $nid));
-    
-      // TODO: need to handle special case of nodes that pre-exist workflow module here
-      // these nodes might be autoassigned a given state, for example
-      // currently we set the state to 0 if it does not exist yet
-      $old_sid = $data->sid ? $data->sid : 0;
-    
-      // compare it with the state we are now in
-      $sid = intval($_POST['edit']['_workflow']);
-      if ( $sid == $old_sid ) return; // no transition has occurred
-      // note that if we support actions for same states we
-      // will need to set a static var to avoid infinite loops when
-      // those actions call node_save() and we end up here again
-    
-      // fire off a callback indicating a transition is about to occur
-      // modules may veto the transition by returning FALSE from the callback
-      $result = module_invoke_all('workflow', 'transition pre', $old_sid, $sid, $node);
-      if (!in_array(FALSE, $result)) {
-        if ($data) {
-          db_query("UPDATE {workflow_node} SET sid = %d WHERE nid = %d", $sid, $nid);        
-        }
-        else {
-          db_query("INSERT INTO {workflow_node} (nid, sid) VALUES (%d, %d)", $nid, $sid);
-        }
-      
-        // notify modules that transition has occurred
-        // actions should take place in response to this callback, not the previous one
-        module_invoke_all('workflow', 'transition post', $old_sid, $sid, $node);
+      // stop if no workflow for this node type
+      $wid = workflow_get_workflow_for_type($node->type);
+      if (!$wid) {
+        break;
+      }
+
+      // get new state
+      $sid = $node->workflow;
+      if (!$sid && $op == 'insert') { // if not specified, use first valid
+        $sid = array_shift(array_keys(workflow_field_choices($node)));
+      }
+
+      // make sure new state is a valid choice
+      if (array_key_exists($sid, workflow_field_choices($node))) {
+        workflow_execute_transition($node, $sid); // do transition
       }
       break;
-      
+    
     case 'delete':
-      // the node has been deleted, so delete its state information
       db_query("DELETE FROM {workflow_node} WHERE nid = %d", $node->nid); 
       break;
-
   }
-
-  return isset($output) ? $output : NULL;
 }
 
 /**
- * Implementation of hook_workflow()
+ * Generate a forms API compliant workflow field.
+ *
+ * @param object &$node
+ * @return array
+ */
+function workflow_field_form($node) {
+  $form = array();
+  $choices = workflow_field_choices($node);
+  ksort($choices);
+  if (count($choices) > 1) {
+    $wid = workflow_get_workflow_for_type($node->type);
+    $name = workflow_get_name($wid);
+    $current = workflow_node_current_state($node);
+    $form['workflow'] = array(
+      '#type' => 'fieldset',
+      '#title' => $name,
+      '#collapsible' => TRUE,
+      '#collapsed' => true
+    );
+    $form['workflow'][$name] = array(
+    '#type' => 'select',
+    '#title' => $name,
+    '#options' => $choices,
+    '#parents' => array('workflow'),
+    '#default_value' => $current
+    );
+  }
+  return $form;
+}
+
+/**
+ * Execute a transition (change state of a node).
+ *
+ * @param object $node
+ * @param int $sid
+ *   ID of new state.
+ */
+function workflow_execute_transition($node, $sid) {
+  $old_sid = workflow_node_current_state($node);
+  if ($old_sid == $sid) { // stop if not going to a different state
+    return;
+  }
+
+  // Make sure this transition is valid and allowed for the current user.
+  global $user;
+  if ($user->uid > 1) { // allow any state change for superuser (might be cron)
+    $tid = workflow_get_transition_id($old_sid, $sid);
+    if (!$tid) {
+      watchdog('workflow', t('Attempt to go to nonexistent transition (from %old to %new)', array('%old' => $old_sid, '%new' => $sid), WATCHDOG_ERROR));
+      return;
+    }    
+    if (!workflow_transition_allowed($tid, array_keys($user->roles))) {
+      watchdog('workflow', t('User %user not allowed to go from state %old to %new)', array('%user' => $user->name, '%old' => $old_sid, '%new' => $sid), WATCHDOG_NOTICE));
+      return;
+    }
+  }
+
+  // Invoke a callback indicating a transition is about to occur. Modules 
+  // may veto the transition by returning FALSE.
+  $result = module_invoke_all('workflow', 'transition pre', $old_sid, $sid, $node);
+
+  if (in_array(FALSE, $result)) { // stop if a module says so
+    return; 
+  } 
+
+  _workflow_node_to_state($node, $sid); // change the state
+  
+  // Register state change with watchdog
+  $state_name = db_result(db_query("SELECT state FROM {workflow_states} WHERE sid = %d", $sid));
+  $type = check_plain(node_get_name($node->type)); //module_invoke($node->type, 'node_name', $node);
+  $state_name = check_plain($state_name);
+  watchdog('workflow', "State of $type <em>$node->title</em> set to $state_name", WATCHDOG_NOTICE, l('view', $node->nid));
+
+  // Notify modules that transition has occurred. Actions should take place 
+  // in response to this callback, not the previous one.
+  module_invoke_all('workflow', 'transition post', $old_sid, $sid, $node);
+}
+
+/**
+ * Get the states one can move to for a given node.
+ *
+ * @param object $node
+ * @return array
+ */
+function workflow_field_choices($node) {
+  global $user;
+  $wid = workflow_get_workflow_for_type($node->type);
+  if (!$wid) { return false; } // no workflow for this type
+  $states = workflow_get_states($wid);
+  $roles = array_keys($user->roles);
+  $current_sid = workflow_node_current_state($node);
+  if ($user->uid == $node->uid && $node->uid > 0) { // if the node author
+    $roles += array('author' => 'author');
+  }
+  if ($user->uid == 1) { // if the superuser
+    $roles = 'ALL';
+  }
+  $transitions = workflow_allowable_transitions($current_sid, 'to', $roles);
+
+  if ($current_sid != _workflow_creation_state($wid)) { // include current state if not (creation)
+    $transitions = array($current_sid => $states[$current_sid]) + $transitions;
+  }
+  return $transitions;
+}
+
+/**
+ * Get the current state of a given node.
+ *
+ * @param object $node
+ * @return bool
+ */
+function workflow_node_current_state($node) {
+  $sid = db_result(db_query("SELECT sid FROM {workflow_node} WHERE nid=%d ".
+    "ORDER BY start DESC LIMIT 1", $node->nid));
+  if (!$sid) {
+    $wid = workflow_get_workflow_for_type($node->type);
+    $sid = _workflow_creation_state($wid);
+  }
+  return $sid;
+}
+
+function _workflow_creation_state($wid) {
+  return db_result(db_query("SELECT sid FROM {workflow_states} WHERE ".
+    "wid=%d && sysid=%d", $wid, WORKFLOW_CREATION));
+}
+
+/**
+ * Implementation of hook_workflow().
  */
 function workflow_workflow($op, $old_state, $new_state, $node) {
   switch ($op) {
     case 'transition pre':
-      break;
+    break;
    
-    case 'insert':
     case 'transition post':
       // a transition has occurred; fire off actions associated with this transition
       // an SQL guru could clean this up with a complicated JOIN
@@ -223,134 +284,359 @@ function workflow_workflow($op, $old_state, $new_state, $node) {
           actions_do(array_keys($actions_this_tid), $node);
         }
       }      
-      break;     
+    break;     
   } 
 }
 
 /**
- * Controller.
+ * Create the form for adding/editing a workflow.
  *
- * @param $op
- *   The operation, aka the "add" in admin/workflow/add
+ * @param $name
+ *   Name of the workflow if editing.
+ * @param $add
+ *   Boolean, if true edit workflow name.
  *
  * @return
- *   Themed page.
+ *   HTML form.
  *
  */
-function workflow_page($op = NULL, $arg3 = null, $arg4 = null, $arg5 = null, $arg6 = null) {
-  $edit = array_key_exists('edit', $_POST) ? $_POST['edit'] : array();
-  $output = '';
-  switch ($op) {
-    case 'add':
-      if (array_key_exists('wf_name', $edit) && $edit['wf_name'] != '')  {
-        $wf_name = $edit['wf_name'];
-        workflow_create($wf_name);
-        drupal_set_message(t("The workflow '$wf_name' was created. You should now add states to your workflow."));
-        drupal_goto('admin/workflow');
-      }
-      else {
-        $output = workflow_add_form($edit);
-      }
-      break;
-    
-    case 'edit':
-      $wid = $arg3;
-      if (array_key_exists('wf_name', $edit) && $edit['wf_name'] != '') {
-        workflow_update_name($wid, $edit['wf_name']);
-        drupal_set_message(t('Workflow name updated to') . " '" . $edit['wf_name'] . "'.");
-        drupal_goto('admin/workflow');
-      }
-      else {
-        $edit['wf_name'] = workflow_get_name($wid);
-        $output = workflow_add_form($edit, FALSE);
-      }
-      break;
+function workflow_add_form($name = NULL) {
+  $form = array();
+  $form['wf_name'] = array(
+    '#type' => 'textfield',
+    '#title' => t('Workflow Name'),
+    '#size' => '16',
+    '#maxlength' => '254',
+    '#value' => $name
+    );
+  $form['submit'] = array('#type' => 'submit', '#value' => t('Add Workflow'));
+  $output = drupal_get_form('workflow_add_form', $form);
+  return $output;
+}
 
-    case 'state':
-      $wid = $arg3;
-      if (array_key_exists('state_name', $edit) && $edit['state_name'] != '' && is_numeric($wid))  {
-        $state_name = $edit['state_name'];
-        workflow_state_create($wid, $state_name);
-        drupal_set_message(t("The workflow state '$state_name' was created."));
-        drupal_goto('admin/workflow');
-      }
-      else {
-        $output = workflow_state_add_form($wid, $edit);
-      }
-      break;
+function workflow_add_form_validate($form_id, $form_values) {
+  if ($form_values['wf_name'] == '') {
+    form_set_error('', t('Please provide a nonblank name for the new workflow.'));
+  }
+}
 
-    case 'transition':
-      $sid = $arg4;
-      $state = workflow_get_state($sid);
-      if ($edit['sid']) {
-        workflow_transition_save($sid, $edit);
-        drupal_set_message(t('Allowable transitions for') . ' ' . $state . ' ' . t('were saved.'));
-        drupal_goto('admin/workflow');
+function workflow_add_form_execute($form_id, $form_values) {
+  if (array_key_exists('wf_name', $form_values) && $form_values['wf_name'] != '')  {
+    $wf_name = $form_values['wf_name'];
+    workflow_create($wf_name);
+    drupal_set_message(t('The workflow %wf was created. You should now add states to your workflow.', array('%wf' => theme('placeholder', $wf_name))));
+    drupal_goto('admin/workflow');
+  }  
+}
+
+/**
+ * Create the form for confirmation of deleting a workflow.
+ *
+ * @param $wid
+ *   The ID of the workflow.
+ *
+ * @return
+ *   HTML form.
+ *
+ */
+function workflow_delete($wid, $sid = NULL) {
+  if (isset($sid)) {
+    return workflow_state_delete_form($wid, $sid); 
+  }
+  $wf = workflow_get_name($wid);
+  $form = array();
+  $form['wid'] = array('#type' => 'value', '#value' => $wid);
+  $output = confirm_form('workflow_delete_confirm', $form, t('Are you sure you want to delete %title? All nodes that have a workflow state associated with this workflow will have those workflow states removed.', array('%title' => theme('placeholder', $wf))), $_GET['destination'] ? $_GET['destination'] : 'admin/workflow', t('This action cannot be undone.'), t('Delete'), t('Cancel')  );
+  return $output;
+}
+
+function workflow_delete_confirm_execute($form_id, $form_values) {
+  if ($form_values['confirm'] == 1) {
+    $wid = $form_values['wid'];
+    $wf = workflow_get_name($wid);
+    workflow_deletewf($wid);
+    drupal_set_message(t('The workflow %wf was deleted.', array('%wf' => theme('placeholder', $wf))));
+    drupal_goto('admin/workflow');
+  }
+}
+
+/**
+ * Menu callback to edit a workflow's properties.
+ *
+ * @param $wid
+ *   The ID of the workflow.
+ *
+ * @return
+ *   HTML form.
+ *
+ */
+function workflow_edit($wid) {
+  $name = workflow_get_name($wid);
+  $form['wf_name'] = array(
+    '#type' => 'textfield',
+    '#value' => $name,
+    '#title' => t('Workflow Name'),
+    '#size' => '16',
+    '#maxlength' => '254',
+  );
+  $form['transitions'] = workflow_transition_grid_form($wid);
+  $form['submit'] = array('#type' => 'submit', '#value' => t('Save'));
+  $form['wid'] = array('#type' => 'value', '#value' => $wid);
+  $form['#theme'] = 'workflow_edit';
+  $form['transitions']['#tree'] = true;
+  $output = drupal_get_form('workflow_edit', $form);
+  return $output;
+}
+
+function theme_workflow_edit($form) {
+  $output = form_render($form['wf_name']);
+  $wid = $form['wid']['#value'];
+  $states = workflow_get_states($wid);
+  if ($states) {
+    $result = db_query('SELECT * FROM {role} ORDER BY name');
+    $roles = array('author' => 'author');
+    while ($data = db_fetch_object($result)) {
+      $roles[$data->rid] = $data->name;
+    }
+    $header = array(array('data' => t('From / To -->')));
+    $rows = array();
+    foreach ($states as $state_id => $name) {
+      if ($name != '(creation)') { // don't allow transition TO (creation)
+        $header[] = array('data' => t($name));
       }
-      else {
-        $wid = $arg3;
-        $output = workflow_transition_form($wid, $sid);
-      }
-      break;
-    
-    case 'delete':
-      $wid = $arg3;
-      $sid = $arg4;
-      if ($edit['confirm']) {
-        if ($sid) {
-          $states = workflow_get_states($wid);
-          $state = $states[$sid];
-          $output = workflow_state_delete($sid);
-          drupal_set_message(t("The workflow state '$state' was deleted."));
+      $row = array(array('data' => $name));
+      foreach ($states as $nested_state_id => $nested_name) {
+        if ($nested_name == '(creation)') { 
+          continue; // don't allow transition TO (creation)
+        }
+        if ($nested_state_id != $state_id) {
+          // need to render checkboxes for transition from $state to $nested_state
+          $from = $state_id;
+          $to = $nested_state_id;
+          $cell = '';
+          foreach ($roles as $rid => $role_name) {
+            $cell .= form_render($form['transitions'][$from][$to][$rid]);
+            //$cell .= form_render($form['transitions']["transitions][$from][$to][$rid"]);                   
+          }
+          $row[] = array('data' => $cell);
         }
         else {
-          $wf = workflow_get_name($wid);
-          $output = workflow_deletewf($wid);
-          drupal_set_message(t('The workflow') . " '$wf' " . t('was deleted.'));
+          $row[] = array('data' => ''); 
         }
-        drupal_goto('admin/workflow');
+      }      
+      $rows[] = $row;
+    }
+    $output .= theme('table', $header, $rows);
+  } else {
+    $output = 'There are no states defined for this workflow.';
+  }
+ 
+  $output .= form_render($form);
+  return $output; 
+}
+
+function workflow_edit_validate($form_id, $form_values) {
+  $wid = $form_values['wid'];
+  if (array_key_exists('wf_name', $form_values) && $form_values['wf_name'] != '') { 
+    // validate: make sure workflow name is not a duplicate
+    $dupe_name = db_result(db_query("SELECT COUNT(*) FROM {workflows} WHERE name='%s' && wid!=%d", $form_values['wf_name'], $wid));
+    if ($dupe_name) {
+      form_set_error('', t('Warning: Another workflow with this name already exists.'));
+    }
+
+    // validate: make sure 'author' is checked for (creation) -> [something]
+    $states = workflow_get_states($wid);
+    $author_creates = 0;
+    foreach ($form_values['transitions'] as $id => $trans) {
+      if ($states[$id] == '(creation)') {
+        foreach ($trans as $t) {
+          if ($t['author'] == 1) { $author_creates++; }
+        }
       }
-      else {
-        if ($sid) {
-          $output = workflow_state_delete_form($wid, $sid);
-        }
+    }
+    if ($author_creates == 0) {
+      drupal_set_message(t('Warning: Please give the author permission to go from (creation) to at least one state.'), 'warning');
+    }
+  }
+  else {
+    form_set_error('', t('Please provide a name for the workflow.')); 
+  }
+}
+
+function workflow_edit_execute($form_id, $form_values) {
+  workflow_update_name($form_values['wid'], $form_values['wf_name']);
+  workflow_update_transitions($form_values['transitions']);
+  drupal_set_message(t('Workflow updated.'));
+  drupal_goto('admin/workflow');
+}
+  
+/**
+ * Menu callback to create form to add a workflow state.
+ *
+ * @param $wid
+ *   The ID of the workflow.
+ *
+ * @return
+ *   HTML form.
+ *
+ */
+function workflow_state_add ($wid) {
+  $form['state_name'] = array(
+    '#type'  => 'textfield',
+    '#title' => t('State Name'),
+    '#size'  => '16',
+    '#maxlength' => '254',
+  );
+  $form['submit'] = array('#type' => 'submit', '#value' => t('Save'));
+  $form['wid'] = array('#type' => 'value', '#value' => $wid);
+  $output = drupal_get_form('workflow_state_add', $form);
+  return $output;
+}
+
+function workflow_state_add_validate($form_id, $form_values) {
+  if ($form_values['state_name'] == '') {
+    form_set_error('', t('Please provide a nonblank name for the new state.'));
+  }
+}
+
+function workflow_state_add_execute($form_id, $form_values) {
+  workflow_state_create($form_values['wid'], $form_values['state_name']);
+  drupal_set_message(t('The workflow state was created.'));
+  drupal_goto('admin/workflow');
+}
+
+/**
+ * Update the transitions for a workflow.
+ *
+ * @param array $transitions
+ *   Transitions, for example:
+ *     18 => array(
+ *       20 => array(
+ *         'author' => 1,
+ *         1        => 0,
+ *         2        => 1,
+ *       )
+ *     )
+ *   means the transition from state 18 to state 20 can be executed by
+ *   the node author or a user in role 2. The $transitions array should
+ *   contain ALL transitions for the workflow.
+ */
+function workflow_update_transitions($transitions = array()) {
+  foreach ($transitions as $from => $to_data) {
+    foreach ($to_data as $to => $role_data) {
+      foreach ($role_data as $role => $can_do) {
+        if ($can_do) {
+          workflow_transition_add_role($from, $to, $role);
+        } 
         else {
-          $output = workflow_delete_form($wid); 
+          workflow_transition_delete_role($from, $to, $role);
         }
       }
-      break;
+    }
+  }
+  db_query("DELETE FROM {workflow_transitions} WHERE roles=''");
+}
 
-    case 'actions':
-      if (!is_numeric($arg3)) {
-        drupal_goto('admin/workflow');
-      }
-      $wid = intval($arg3); 
-      if ($arg4 == 'remove' && is_numeric($arg5)) {
-        $tid = intval($arg5);
-        $aid = $arg6;
-        $actions = workflow_get_actions($tid);
-        workflow_actions_remove($tid, $aid);
-        drupal_set_message(t('The action') . " '$actions[$aid]' " . t('has been removed.'));
-        drupal_goto("admin/workflow/actions/$wid");
-      }
-      elseif (isset($edit['action']) && $edit['action']) {
-        $tid = intval($edit['tid']);
-        $aid = actions_key_lookup($edit['action']);
-        workflow_actions_save($tid, $aid);
-      }    
-      $output = workflow_actions_form($wid, $edit); 
-      break;
+/**
+ * Add a role to the list of those allowed for a given transition.
+ * Add the transition if necessary.
+ * @param int $from
+ * @param int $to
+ * @param mixed $role
+ *   Int (role ID) or string ('author').
+ */
+function workflow_transition_add_role($from, $to, $role) {
+  $tid = workflow_get_transition_id($from, $to);
+  if ($tid) {
+    $roles = db_result(db_query("SELECT roles FROM {workflow_transitions} WHERE tid=%d", $tid));
+    $roles = explode(',', $roles);
+    if (array_search($role, $roles) === FALSE) {
+      $roles[] = $role;
+      db_query("UPDATE {workflow_transitions} SET roles='%s' WHERE tid=%d", implode(',', $roles), $tid);
+    }
+  } 
+  else {
+    db_query("INSERT INTO {workflow_transitions} (tid, sid, target_sid, roles) VALUES (%d, %d, %d, '%s')", db_next_id('workflow_transitions'), $from, $to, $role);
+  }
+}
 
-    default:
-      if ($edit['update']) {
-        workflow_types_save($edit);
-        drupal_set_message(t("The workflow mapping was saved."));
-        drupal_goto('admin/workflow');
-      }
-      $output = workflow_overview();   
+/**
+ * Remove a role from the list of those allowed for a given transition.
+ * @param int $tid
+ * @param mixed $role
+ *   Int (role ID) or string ('author').
+ */
+function workflow_transition_delete_role($from, $to, $role) {
+  $tid = workflow_get_transition_id($from, $to);
+  if ($tid) {
+    $roles = db_result(db_query("SELECT roles FROM {workflow_transitions} WHERE tid=%d", $tid));
+    $roles = explode(',', $roles);
+    if (($i = array_search($role, $roles)) !== FALSE) {
+      unset($roles[$i]);
+      db_query("UPDATE {workflow_transitions} SET roles='%s' WHERE tid=%d", implode(',', $roles), $tid);
+    }
+  }
+}
+
+/**
+ * Build the grid of transitions for defining a workflow.
+ *
+ * @param int $wid
+ */
+function workflow_transition_grid_form($wid) {
+  
+  $result = db_query('SELECT * FROM {role} ORDER BY name');
+  $roles = array('author' => 'author');
+  while ($data = db_fetch_object($result)) {
+    $roles[$data->rid] = $data->name;
   }
 
-  print theme('page', $output);
+  $form = array();
+  $states = workflow_get_states($wid);
+  if (!$states) {
+    $form = array('#type' => 'markup', '#value' => t('There are no states defined for this workflow.'));
+    return $form;
+  }
+  foreach ($states as $state_id => $name) {
+    foreach ($states as $nested_state_id => $nested_name) {
+      if ($nested_name == t('(creation)')) {
+        continue; // don't allow transition TO (creation)
+      }
+      if ($nested_state_id != $state_id) {
+        // need to generate checkboxes for transition from $state to $nested_state
+        $from = $state_id;
+        $to = $nested_state_id;
+        foreach ($roles as $rid => $role_name) {
+          $tid = workflow_get_transition_id($from, $to);
+          $form[$from][$to][$rid] = array(
+            '#type' => 'checkbox',
+            '#title' => $role_name,
+            '#default_value' => $tid ? workflow_transition_allowed($tid, $rid) : false);
+        }
+      }
+    }     
+  }
+  return $form;
+}
+
+/**
+ * See if a transition is allowed for a given role.
+ *
+ * @param int $tid
+ * @param mixed $role
+ *   A single role (int or string 'author') or array of roles.
+ * @return bool
+ */
+function workflow_transition_allowed($tid, $role = null) {
+  $allowed = db_result(db_query(
+    "SELECT roles FROM {workflow_transitions} WHERE tid=%d", $tid));
+  $allowed = explode(',', $allowed);
+  if ($role) {
+    if (!is_array($role)) { $role = array($role); }
+    return array_intersect($role, $allowed) ==  true;
+  } else {
+    return $allowed == true; // allowed for anybody?
+  }
 }
 
 /**
@@ -380,10 +666,6 @@ function workflow_overview() {
       foreach ($states as $sid => $state) {
         if (!workflow_is_system_state($state)) {
           $cell .= "<table style='width: 100%'><tr><td>" . $state;
-          // only show transitions link if we have more than one state (plus the creation state)
-          if (count($states) > 2) {
-            $cell .= ' (' . l(t('transitions'), "admin/workflow/transition/$data->wid/$sid") . ')';
-          }
           $cell .= "</td><td style='text-align: right'>";
           $cell .= l(t('delete'), "admin/workflow/delete/$data->wid/$sid") . "</td></tr></table>";
         }
@@ -394,55 +676,13 @@ function workflow_overview() {
   
   if (!$row) {
     $output = '<p>' . t('No workflows have been added. Would you like to %add_a_workflow?', array('%add_a_workflow' => l(t('add a workflow'), 'admin/workflow/add'))) . '</p>';
-  }
-  else {
+  } else {
     $output .= theme('table', $header, $row);
   }
   
   $output .= workflow_types_form();
   
   return $output;
-}
-
-/**
- * Create the form for adding/editing a workflow.
- *
- * @param $edit
- *
- * @return
- *   HTML form.
- *
- */
-function workflow_add_form($edit, $add = TRUE) {
-  $output = form_textfield('Workflow Name', 'wf_name', $edit['wf_name'], 16, 254);
-  if ($add) {
-    $output .= form_submit(t('Add Workflow'));
-  }
-  else {
-    $output .= form_hidden('editing', '1');
-    $output .= form_submit(t('Save'));
-  }
-
-  return form($output);
-}
-
-/**
- * Create the form for confirmation of deleting a workflow.
- *
- * @param $wid
- *   The ID of the workflow.
- *
- * @return
- *   HTML form.
- *
- */
-function workflow_delete_form($wid) {
-  $wf = workflow_get_name($wid);
-  $output .= form_item(t('Confirm deletion'), t("Really delete workflow '%wf' (and all the states it contains)? All nodes that have a workflow state associated with this workflow will have those workflow states removed.", array('%wf' => $wf)));
-	$output .= form_hidden('confirm', 1);
-	$output .= form_submit(t('Delete'));
-
-  return form($output);
 }
 
 /**
@@ -464,25 +704,6 @@ function workflow_is_system_state($state) {
 }
 
 /**
- * Create the form for adding a workflow state.
- *
- * @param $wid
- *   The ID of the workflow.
- * @param $edit
- *
- * @return
- *   HTML form.
- *
- */
-function workflow_state_add_form($wid, $edit) {
-  $output = form_textfield('State Name', 'state_name', $edit['state_name'], 16, 254);
-  $output .= form_hidden('wid', $wid);
-  $output .= form_submit('Add State');
-
-  return form($output);
-}
-
-/**
  * Create the form for confirmation of deleting a workflow state.
  *
  * @param $wid
@@ -496,102 +717,137 @@ function workflow_state_add_form($wid, $edit) {
  */
 function workflow_state_delete_form($wid, $sid) {
   $states = workflow_get_states($wid);
+  $form = array();
+  $form['wid'] = array('#type' => 'value', '#value' => $wid);
+  $form['sid'] = array('#type' => 'value', '#value' => $sid);
+  $output = confirm_form('workflow_state_delete_confirm', $form, t('Are you sure you want to delete %title (and all its transitions)?', array('%title' => theme('placeholder', $states[$sid]))), $_GET['destination'] ? $_GET['destination'] : 'admin/workflow', t('This action cannot be undone.'), t('Delete'), t('Cancel')  );
+  return $output;
+
+ /*
   $output .= form_item(t('Confirm deletion'), t("Really delete workflow state '%state' (and all of its transitions)?", array('%state' => $states[$sid])));
-	$output .= form_hidden('confirm', 1);
-	$output .= form_submit(t('Delete'));
+    $output .= form_hidden('confirm', 1);
+    $output .= form_submit(t('Delete'));
 
   return form($output);
+  */
 }
 
-/**
- * Create the form for selecting appropriate transitions from and to
- * a workflow state. 
- *
- * @param $wid
- *   integer The ID of the workflow.
- * @param $sid
- *   The ID of the workflow state.
- *
- * @return
- *   HTML form.
- *
- */
-function workflow_transition_form($wid, $sid) {
-  $states = workflow_get_states($wid);
-  $allowable_to = workflow_allowable_transitions($sid, 'to');
-  $allowable_from = workflow_allowable_transitions($sid, 'from');
-  
-  $from_form = '';
-  $to_form = '';
-  foreach ($states as $id => $state) {
-    if ($id != $sid && !workflow_is_system_state($state)) {
-      $from_form .= form_checkbox($state, 'from_' . $id, 1, array_key_exists($id, $allowable_from)) . '<br />';
-      $to_form .= form_checkbox($state, 'to_' . $id, 1, array_key_exists($id, $allowable_to)) . '<br />';
-    }
+function workflow_state_delete_confirm_execute($form_id, $form_values) {
+  $states = workflow_get_states($form_values['wid']);
+  $state = $states[$form_values['sid']];
+  if ($form_values['confirm'] == 1) {
+    workflow_state_delete($form_values['sid']);
+    drupal_set_message(t('The workflow state %title was deleted.', array('%title' => theme('placeholder', $state))));
   }
-  $row = array();
-  $arrow = '&nbsp;&nbsp;--&gt;&nbsp;';
-  $state_cell = $states[$sid];
-  $header = array(
-    array('data' => t("States that may move to state '%state_cell'", array('%state_cell' => $state_cell))), 
-    array('data' => '', 'style' => 'text-align: center'), 
-    array('data' => 'State', 'style' => 'text-align: center'), 
-    array('data' => '', 'style' => 'text-align: center'), 
-    array('data' => t("States that state '%state_cell' may move to", array('%state_cell' => $state_cell)))
-    );
-  $row[] = array(
-    array('data' => $from_form), 
-    array('data' => $arrow, 'style' => 'vertical-align:middle'), 
-    array('data' => $state_cell, 'style' => 'vertical-align: middle'), 
-    array('data' => $arrow, 'style' => 'vertical-align: middle'), 
-    array('data' => $to_form)
-    );
-
-  $output = '<h3>' . t("Transitions for state '%state'", array('%state' => $states[$sid])) . '</h3>';
-  $output .= theme('table', $header, $row);
-  $output .= form_hidden('sid', $sid);
-  $output .= form_submit(t('Save Transitions'));
-
-  return form($output);
+  drupal_goto('admin/workflow');
 }
 
 function workflow_types_form() {
   $workflows = workflow_get_all();
+  if (count($workflows) == 0) {
+    return ''; 
+  }
   $workflows[0] = t('None');
-  $header = array(
-    array('data' => t('Node Type')), 
-    array('data' => t('Workflow'))
-    );
-  $row = array();
+  $form = array();
+  $form['workflow_mapping'] = array();
+  $form['workflow_mapping']['#theme'] = 'workflow_types_form';
+  
   $type_map = array();
   $result = db_query("SELECT * FROM {workflow_type_map}");
   while ($data = db_fetch_object($result)) {
     $type_map[$data->type] = $data->wid;
   }
   $options = $workflows;
-  $nodetypes = node_get_types(); 
+
+  $nodetypes = node_get_types();
   foreach ($nodetypes as $type => $name) {
     $value = $type_map[$type];
-	  $row[] = array(
-	    array('data' => $name),
-	    array('data' => form_select('', $type, $value, $options))
-	    );
+    $form['workflow_mapping'][$type] = array(
+      '#type' => 'select',
+      '#prefix' => $name,
+      '#options' => $options,
+      '#default_value' => $value
+      );
   }
-  
-  $output .= theme('table', $header, $row);
-  $output .= form_hidden('update', '1');
-  $output .= form_item('', '', t('Each node type may have a separate workflow.'));
-  $output .= form_submit(t('Save Workflow Mapping'));
-  
-  return form($output);
+  $form['workflow_mapping']['submit'] = array('#type' => 'submit', '#value' => t('Save Workflow Mapping'));
+  $form['nodetypes'] = array('#type' => 'value', '#value' => $nodetypes);
+  return drupal_get_form('workflow_type_form', $form);
 }
 
-function workflow_actions_form($wid, $edit) {
+function theme_workflow_types_form($form) {
+  $output = '<div class="form-item">' . t('Each node type may have a separate workflow:') . '</div>';
+  $header = array(
+    array('data' => t('Node Type')), 
+    array('data' => t('Workflow'))
+  );
+  $row = array();
+  foreach (element_children($form) as $key) {
+    $name = $form[$key]['#prefix'];
+    unset($form[$key]['#prefix']);
+    $row[] = array(
+      array('data' => $name), 
+      array('data' => form_render($form[$key]))
+    );
+  } 
+  $output .= theme('table', $header, $row);
+  return $output;
+}
+
+function workflow_type_form_execute($form_id, $form_values) {
+  workflow_types_save($form_values);
+  drupal_set_message(t('The workflow mapping was saved.'));
+  drupal_goto('admin/workflow');
+}
+
+function workflow_actions_remove_form($wid, $tid, $aid) {
+  $form = array();
+  $form['wid'] = array('#type' => 'value', '#value' => $wid);
+  $form['tid'] = array('#type' => 'value', '#value' => $tid);
+  $form['aid'] = array('#type' => 'value', '#value' => $aid);
+  $actions = actions_get_all_actions();
+  $output = confirm_form('workflow_actions_remove_confirm', $form, t('Are you sure you want to delete the action %title?', array('%title' => theme('placeholder', $actions[$aid]['description']))), $_GET['destination'] ? $_GET['destination'] : 'admin/workflow/actions', t('You can add it again later if you wish.'), t('Delete'), t('Cancel')  );
+  return $output;
+}
+
+function workflow_actions_remove_confirm_execute($form_id, $form_values) {
+  if ($form_values['confirm'] == 1) {
+    $aid = $form_values['aid'];
+    $actions = actions_actions_map(actions_get_all_actions());
+    workflow_actions_remove($form_values['tid'], $aid);
+    watchdog('workflow', t('Action %action deleted',  array('%action' => check_plain($actions[$aid])))); 
+    drupal_set_message(t('Action %action deleted.', array('%action' => theme('placeholder', $actions[$aid]))));
+    drupal_goto('/admin/workflow/actions/'. $form_values['wid']);
+  }
+}
+
+function workflow_actions_form($wid) {
+  $result = workflow_actions_form_build($wid);
+  $form = $result[1];
+  $output = workflow_actions_form_build($wid, $form);
+  return $output[0]; 
+}
+
+function workflow_actions_execute($form, $form_values) {
+  $tid = $form_values['tid'];
+  $aid = actions_key_lookup($form_values['action']);
+  workflow_actions_save($tid, $aid);
+  
+  // the form does weird things if we don't do a drupal_goto()
+  $wid = arg(3);
+  drupal_goto("admin/workflow/actions/$wid");
+}
+
+function workflow_actions_form_build($wid, $form = NULL) {
+  if (!isset($form)) {
+    $form = array();
+    $render = false;
+  }
+  else {
+    $render =true; 
+  }
   $output = '';
   $states = array();
   $all_states = workflow_get_states($wid);
-  //$initial_sid = key($all_states); 
-  //$initial_state = $all_states[$initial_sid];
 
   foreach ($all_states as $key => $val) {
     $states[$key] = $val;
@@ -624,20 +880,36 @@ function workflow_actions_form($wid, $edit) {
       foreach ($actions_this_tid as $aid => $act_name) {
         $inner_row[] = array(
           array('data' => $act_name), 
-          array('data' => l(t('remove'), "admin/workflow/actions/$wid/remove/$tid/$aid"))
+          array('data' => l(t('remove'), "admin/workflow/actions/remove/$wid/$tid/$aid"))
           );
         unset($available_options[$aid]);
       }
 
       // list possible actions that may be assigned
       if (count($available_options) > 1) {
-        $inner_row[] = array(
-          array('data' => form_select('', 'action', t('None'), $available_options)), 
-          array('data' => form_hidden('tid', $tid) . form_submit(t('Add')))
+        if ($render) {
+          $inner_row[] = array(
+            array('data' => drupal_get_form('workflow_actions_'. $tid, $form[$tid], 'workflow_actions'), 'colspan' => '2')); 
+        }
+        else {
+          $form[$tid] = array();
+          $form[$tid]['action'] = array(
+            '#prefix' => '<table><tr><td>',
+            '#suffix' => '</td>',
+            '#type' => 'select',
+            '#options' => $available_options,
+            '#default_value' => t('None')
           );
+          $form[$tid]['submit'] = array(
+            '#prefix' => '<td>',
+            '#suffix' => '</td></tr></table>',
+            '#type' => 'submit',
+            '#value' => t('Add')
+          );
+          $form[$tid]['tid'] = array('#type' => 'value', '#value' => $tid);
+        }
       }
-
-      $action_table = form(theme('table', array(), $inner_row));
+      $action_table = theme('table', array(), $inner_row);
       $row[] = array(
         array('data' => $state), 
         array('data' => '&nbsp;&nbsp;--&gt;&nbsp;&nbsp;'), 
@@ -646,37 +918,42 @@ function workflow_actions_form($wid, $edit) {
         );
     }
   }
-  $output .= theme('table', $header, $row);
-
-  return $output;
+  
+  if (count($row) == 0) {
+    $output .= t('You must first %link before you can assign actions.', array('%link' => l(t('set up transitions'), 'admin/workflow/edit/' . $wid))); 
+  }
+  else {
+    $output .= theme('table', $header, $row);
+  }
+  return array($output, $form);
 }
 
 /**
  * Given the ID of a workflow, return its name. 
  *
- * @param $wid
- *   integer The ID of the workflow.
+ * @param integer $wid
+ *   The ID of the workflow.
  *
- * @return
- *   string The name of the workflow.
+ * @return string
+ *   The name of the workflow.
  *
  */
 function workflow_get_name($wid) {
-  $data = db_fetch_object(db_query("SELECT * FROM {workflows} WHERE wid = %d", intval($wid)));
-  return $data->name;
+  $name = db_result(db_query("SELECT name FROM {workflows} WHERE wid = %d", $wid));
+  return $name;
 }
 
 /**
  * Get ID of a workflow for a node type. 
  *
- * @return
- *   The ID of the workflow.
+ * @return int
+ *   The ID of the workflow or false if none.
  *
  */
 function workflow_get_workflow_for_type($type) {
-  $wf = db_fetch_object(db_query("SELECT * FROM {workflow_type_map} WHERE type = '%s'", $type));
-  return $wf->wid;
- }
+  $wid = db_result(db_query("SELECT wid FROM {workflow_type_map} WHERE type = '%s'", $type));
+  return $wid > 0 ? $wid : false;
+}
 
 /**
  * Get names and IDS of all workflows from the database. 
@@ -696,26 +973,28 @@ function workflow_get_all() {
 }
 
 /**
- * Create a workflow in the database. 
+ * Create a workflow and its (creation) state. 
  *
- * @param $wf_name
+ * @param $name
  *   The name of the workflow.
  *
  */
-function workflow_create($wf_name) {
+function workflow_create($name) {
   $wid = db_next_id('workflows');
-  db_query("INSERT INTO {workflows} (wid, name) VALUES (%d, '%s')", $wid, $wf_name);
+  db_query("INSERT INTO {workflows} (wid, name) VALUES (%d, '%s')", $wid, $name);
+  db_query("INSERT INTO {workflow_states} (sid, wid, state, sysid) VALUES (%d, %d, '%s', %d)",
+    db_next_id('workflow_state'), $wid, t('(creation)'), WORKFLOW_CREATION);  
 }
 
 /**
  * Save a workflow's name in the database. 
  *
- * @param $wf_name
+ * @param $name
  *   The name of the workflow.
  *
  */
-function workflow_update_name($wid, $wf_name) {
-  db_query("UPDATE {workflows} SET name = '%s' WHERE wid = %d", $wf_name, $wid);
+function workflow_update_name($wid, $name) {
+  db_query("UPDATE {workflows} SET name = '%s' WHERE wid = %d", $name, $wid);
 }
 
 /**
@@ -728,7 +1007,6 @@ function workflow_update_name($wid, $wf_name) {
  *
  */
 function workflow_deletewf($wid) {
-  $wid = intval($wid);
   $wf = workflow_get_name($wid);
   $result = db_query("SELECT sid FROM {workflow_states} WHERE wid = %d", $wid);
   while ($data = db_fetch_object($result)) {
@@ -761,48 +1039,21 @@ function workflow_get_states($wid) {
 }
 
 /**
- * Get the name of a workflow state given an ID.
- *
- * @param $sid 
- *   The ID of the workflow state.
- *
- * @return
- *   A string containing the name of the workflow state.
- *   
- */
-function workflow_get_state($sid) {
-  $state = db_fetch_object(db_query("SELECT * FROM {workflow_states} WHERE sid = %d", intval($sid)));
-
-  return $state->state;
-}
-
-/**
  * Add a workflow state the database.
  *
  * @param $wid
  *   The ID of the workflow.
- * @param $state_name
+ * @param $name
  *   A string representing the workflow state, e.g., 'published'.
  *
  * @return
  *   The ID of the workflow state
  */
-function workflow_state_create($wid, $state_name) {
+function workflow_state_create($wid, $name) {
   $wid = intval($wid);
-  
-  // is this the initial state?
-  $create_initial_state = !db_result(db_query("SELECT COUNT(*) FROM {workflow_states} WHERE wid = %d", $wid));
-  if ($create_initial_state) { // need to create the creation state
-    $initial_sid = db_next_id('workflow_state');
-    db_query("INSERT INTO {workflow_states} (sid, wid, state, weight, sysid) VALUES (%d, %d, '%s', %d, %d)", $initial_sid, $wid, t('(creation)'), -99, WORKFLOW_CREATION);  
-  }
-  
   $sid = db_next_id('workflow_state');
-  db_query("INSERT INTO {workflow_states} (sid, wid, state, weight, sysid) VALUES (%d, %d, '%s', %d, %d)", $sid, $wid, $state_name, 0, 0);
-  
-  if ($create_initial_state) {
-    db_query("INSERT INTO {workflow_transitions} (tid, sid, target_sid) VALUES (%d, %d, %d)", db_next_id('workflow_transitions'), $initial_sid, $sid);
-  }
+  db_query("INSERT INTO {workflow_states} (sid, wid, state, sysid) VALUES (%d, %d, '%s', %d)",
+    $sid, $wid, $name, 0);
   return $sid;
 }
 
@@ -813,7 +1064,6 @@ function workflow_state_create($wid, $state_name) {
  *
  * @param $sid
  *   The ID of the state to delete.
- *
  */
 function workflow_state_delete($sid) {
   // find out which transitions this state is involved in
@@ -836,159 +1086,53 @@ function workflow_state_delete($sid) {
 }
 
 /**
- * Get the allowable transitions for a workflow state.
- *
- * @param $sid
- *   The ID of the workflow state.
- *
- * @return
- *   An associative array keyed on 'to' and 'from'. Each array
- *   contains an array of state IDs.
- */
-function workflow_transitions_load($sid) {
-  static $transitions = array();
-
-  $transitions['from'] = array();
-  $transitions['to'] = array();
-
-  $result = db_query("SELECT * FROM {workflow_transitions} WHERE sid = %d", intval($sid));
-  while ($data = db_fetch_object($result)) {
-    $transitions['to'][$data->target_sid] = TRUE;
-  }
-  
-  $result = db_query("SELECT * FROM {workflow_transitions} WHERE target_sid = %d", intval($sid));
-  while ($data = db_fetch_object($result)) {
-    $transitions['from'][$data->target_sid] = TRUE;
-  }
-
-  return $transitions;
-}
-
-/**
- * Delete any transitions (and actions associated with that transition) from the database.
+ * Delete a transition (and any associated actions).
  *
  * @param $tid
  *   The ID of the transition.
- *
  */
- function workflow_transition_delete($tid) {
-   // delete any actions associated with this transition
-   $actions = workflow_get_actions($tid);
-   foreach (array_keys($actions) as $aid) {
-     workflow_actions_remove($tid, $aid);
-   }
-   
-   db_query("DELETE FROM {workflow_transitions} WHERE tid = %d", $tid);   
- }
- 
-/**
- * Save allowable transitions for a given workflow state.
- *
- * @param $sid
- *   The ID of the state in question.
- * @param $edit
- *   Array containing keys for checked fields, e.g.
- *   $edit['from_2'] means a transition from state ID 2 is allowed.
- *
- */
-function workflow_transition_save($sid, $edit) {
-  $sid = intval($sid);
-  $preexisting = array();
-  
-  // an sql genius could combine the next two queries and remove the if statement
-  $creation_sid = db_result(db_query("SELECT w2.sid FROM {workflow_states} as w1, {workflow_states} as w2 WHERE w1.sid = %d AND w2.wid = w1.wid AND w2.sysid = %d", $sid, WORKFLOW_CREATION));
-  $result = db_query("SELECT sid, target_sid FROM {workflow_transitions} WHERE sid = %d OR target_sid = %d", $sid, $sid);
-  
-  while ($data = db_fetch_object($result)) {
-    if ($data->sid != $creation_sid) {
-      $preexisting[$data->sid][$data->target_sid] = TRUE; 
-    }
+function workflow_transition_delete($tid) {
+  $actions = workflow_get_actions($tid);
+  foreach (array_keys($actions) as $aid) {
+    workflow_actions_remove($tid, $aid);
   }
-  
-  foreach ($edit as $key => $val) {
-        
-   switch ($key) {
-      
-     // we want to move from state prev_sid into state $sid
-     case strstr($key, 'from_') && $val:
-       $prev_sid = intval(substr($key, 5));
-       if ($prev_sid > 0) {
-         if (isset($preexisting[$prev_sid][$sid]) && $prev_sid > 0) {
-//       if (array_key_exists($sid, $preexisting[$prev_sid])) {
-         // we already have this one in the database, so ignore it
-           unset($preexisting[$prev_sid][$sid]);
-           if (!$preexisting[$prev_sid]) {
-             unset($preexisting[$prev_sid]);
-           } 
-         }
-         else {
-           // this is a new transition; save it to the database
-           db_query("INSERT INTO {workflow_transitions} (tid, sid, target_sid) VALUES (%d, %d, %d)", db_next_id('workflow_transitions'), $prev_sid, $sid);
-         }
-       }
-       break; 
-       
-     // we want to move from state $sid into state $target_sid
-     case strstr($key, 'to_') && $val:
-       $target_sid = intval(substr($key, 3));
-       if ($target_sid > 0) {
-//       if (array_key_exists($target_sid, $preexisting[$sid])) {
-         if (isset($preexisting[$sid][$target_sid])) {
-           unset($preexisting[$sid][$target_sid]);
-           if (!$preexisting[$sid]) {
-             unset($preexisting[$sid]);
-           }
-         }
-         else {
-           db_query("INSERT INTO {workflow_transitions} (tid, sid, target_sid) VALUES (%d, %d, %d)", db_next_id('workflow_transitions'), $sid, $target_sid);
-         }
-       }      
-       break; 
-    }
-  }
-  
-  // whatever is left in preexisting should be deleted from the database  
-  foreach ($preexisting as $from => $array) {
-    foreach (array_keys($array) as $target_sid) {
-      $tid = workflow_get_transition_id($from, $target_sid);
-      workflow_transition_delete($tid);
-     } 
-  }
+  db_query("DELETE FROM {workflow_transitions} WHERE tid = %d", $tid);   
 }
-
-
+ 
 /**
  * Get allowable transitions for a given workflow state.
  *
  * @param $sid
  *   The ID of the state in question.
- * @param $direction
+ * @param $dir
  *   The direction of the transition: 'to' or 'from' the state denoted by $sid.
- *   When set to 'to' all the allowable states that may be moved to are returned;
- *   when set to 'from' all the allowable states that may move to the current state
- *   are returned.
- * 
+ *   When set to 'to' all the allowable states that may be moved to are
+ *   returned; when set to 'from' all the allowable states that may move to the
+ *   current state are returned.
+ * @param mixed $roles
+ *   Array of ints (and possibly the string 'author') representing the user's
+ *   roles. If the string 'ALL' is passed (instead of an array) the role
+ *   constraint is ignored (this is the default for backwards compatibility).
+ *
  * @return
- *   An associative array of state names keyed by ID e.g. [2 => 'review', 3 => 'publish']
- *   NOTE: the current state is not part of the returned associative array
+ *   Associative array of states (sid=>name pairs), excluding current state.
  *
  */
-function workflow_allowable_transitions($sid, $direction = 'to') {
+function workflow_allowable_transitions($sid, $dir = 'to', $roles = 'ALL') {
   $transitions = array();
-  $result = NULL;
-  $field = 'target_sid';
-  if ($direction == 'to') {
-    $result = db_query("SELECT t.target_sid, s.state FROM {workflow_transitions} t INNER JOIN {workflow_states} s ON s.sid = t.target_sid WHERE t.sid = %d", $sid);
-  }
-  elseif ($direction == 'from') {
-    $result = db_query("SELECT t.sid, s.state FROM {workflow_transitions} t INNER JOIN {workflow_states} s ON s.sid = t.sid WHERE t.target_sid = %d", $sid);
-    $field = 'sid';
-  }
+  $field       = $dir == 'to' ? 'target_sid' : 'sid';
+  $field_where = $dir != 'to' ? 'target_sid' : 'sid';
+  $result = db_query("SELECT t.tid, t.%s as state_id, s.state as state_name FROM "
+    . "{workflow_transitions} t INNER JOIN {workflow_states} s ON s.sid = "
+    . "t.%s WHERE t.%s = %d", $field, $field, $field_where, $sid);
   
-  while ($data = db_fetch_object($result)) {
-    $transitions[$data->$field] = $data->state;
+  while ($t = db_fetch_object($result)) {
+    if ($roles == 'ALL' || workflow_transition_allowed($t->tid, $roles)) {
+      //$state_id = str_pad($t->state_id, 5, '0', STR_PAD_LEFT);
+      $state_id = $t->state_id;
+      $transitions[$state_id] = $t->state_name;
+    }
   }
- 
   return $transitions;
 }
 
@@ -996,14 +1140,13 @@ function workflow_allowable_transitions($sid, $direction = 'to') {
  * Save mapping of workflow to node type. E.g., "the story node type
  * is using the Foo workflow."
  *
- * @param $edit
- *
+ * @param $form_values
  */
-function workflow_types_save($edit) {
+function workflow_types_save($form_values) {
   $nodetypes = node_get_types();
   db_query("DELETE FROM {workflow_type_map}");
   foreach ($nodetypes as $type => $name) {
-    db_query("INSERT INTO {workflow_type_map} (type, wid) VALUES ('%s', %d)", $type, intval($edit[$type]));
+    db_query("INSERT INTO {workflow_type_map} (type, wid) VALUES ('%s', %d)", $type, intval($form_values[$type]));
   }
 }
 
@@ -1011,21 +1154,33 @@ function workflow_types_delete($wid) {
   db_query("DELETE FROM {workflow_type_map} WHERE wid = %d", $wid); 
 }
 
+/**
+ * Get the actions associated with a given transition.
+ * @param int $tid
+ * @return array
+ *   Actions as aid=>description pairs.
+ */
 function workflow_get_actions($tid) {
   $actions = array();
-  
-  // need to join workflow_actions and actions tables
   $result = db_query("SELECT a.aid, a.description FROM {actions} a INNER JOIN {workflow_actions} w ON a.aid = w.aid WHERE w.tid = %d", $tid);
-    while ($data = db_fetch_object($result)) {
+  while ($data = db_fetch_object($result)) {
     $actions[$data->aid] = $data->description;
   }
-  
   return $actions; 
 }
 
-function workflow_get_transition_id($old_sid, $new_sid) {
-  $data = db_fetch_object(db_query("SELECT * FROM {workflow_transitions} WHERE sid = %d AND target_sid = %d", $old_sid, $new_sid));
-  return $data->tid;
+/**
+ * Get the tid of a transition, if it exists.
+ *
+ * @param int $from
+ *   ID (sid) of originating state.
+ * @param int $to
+ *   ID (sid) of target state.
+ * @return int
+ *   Tid or FALSE if no such transition exists.
+ */
+function workflow_get_transition_id($from, $to) {
+  return db_result(db_query("SELECT tid FROM {workflow_transitions} WHERE sid=%d && target_sid=%d", $from, $to));
 }
 
 function workflow_actions_save($tid, $aid) {
@@ -1038,6 +1193,22 @@ function workflow_actions_save($tid, $aid) {
 function workflow_actions_remove($tid, $aid) {
   actions_unregister($aid, 'workflow', $tid);
   db_query("DELETE FROM {workflow_actions} WHERE tid = %d AND aid = '%s'", $tid, $aid);
+}
+
+/**
+ * Put a node into a state. 
+ * No permission checking here; only call this from other functions that know
+ * what they're doing.
+ *
+ * @see workflow_execute_transition()
+ *
+ * @param object $node
+ * @param int $sid
+ */
+function _workflow_node_to_state($node, $sid) {
+  global $user;
+  db_query("INSERT INTO {workflow_node} (nid, sid, uid) VALUES (%d, %d, %d)",
+    $node->nid, $sid, $user->uid);
 }
 
 ?>

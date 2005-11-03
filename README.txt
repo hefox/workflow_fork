@@ -3,7 +3,7 @@
 ********************************************************************
 Name: Workflow Module
 Author: John VanDyk <jvandyk at iastate dot edu>
-Drupal: 4.5
+Drupal: cvs
 ********************************************************************
 DESCRIPTION:
 
@@ -16,6 +16,9 @@ Moving from one state to another is called a transition.
 
 Actions are associated with transitions (actions.module must be
 installed for this).
+
+Alex Reisner introduced role-based permissions for workflow states
+and generally enhanced this module.
 
 ********************************************************************
 INSTALLATION:
@@ -71,22 +74,30 @@ enter "draft" and click the Add State button. Do the same for "done".
 
 So we've got a workflow with two states, "draft" and "done". Now we
 have to tell each state which other states it can move to. With only
-two states, this is easy. Click on the "transitions" link to the right
-of the "draft" state.
+two states, this is easy. Click on the "edit" link to edit the workflow
+and see its states.
 
-The "From" column lists all states that may move to this state. The
-"To" column lists all states that we may move to from this state. Since
-we're keeping this simple, we will have the simplest possible workflow.
-Nodes in a "draft" state may move to a "done" state, and that's it.
-To set this up, click the checkbox next to "done" and click the
-Save Transitions button.
+The "From / To -->" column lists all states. To the right are columns
+for each state. Within each cell is a list of roles with checkboxes.
 
-Just for fun, click on the transitions link to the right of the "done"
-state. As expected, it shows that you can get to the "done" state
-from the "draft" state.
+This is confusing. It's easiest to understand if you read rows
+across from the left. For example, we start with the creation
+state. Who may move a node from its creation state to the "draft"
+state? Well, the author of the node, for one. So check the "author"
+checkbox.
+
+Who may move the node from the "draft" state to the "done" state?
+This is up to you. If you want authors to be able to do this,
+check the "author" checkbox under the "done" state. If you had
+another role, say "editor", that you wanted to give the ability
+to decree a node as "done", you'd check the checkbox next to
+the "editor" role and not the author role. In this scenario authors
+would turn in drafts and editors would say when they are "done".
+
+Be sure to click the Save button to save your settings.
 
 Now let's tell Drupal which node types should use this workflow. Click
-on the "type mapping" tab. Let's assign the Draft-Done workflow
+on admin -> workflow. Let's assign the Draft-Done workflow
 to the story node type and click Save Workflow Mapping.
 
 Now we could add an action (previously configured using the actions
@@ -98,8 +109,8 @@ guide:
 - configure the action and click Save. Note that the description field
   here will be used later on
 
-OK, back in the workflow module, click on the actions link to the
-right of your workflow. Add the action to the transition.
+OK, back in the workflow module, click on the actions link above
+your workflow. Add the action to the transition.
 
 Now create a new story by going to create content -> story. Note that
 there is no sign of workflow here because the story is in its
@@ -116,7 +127,5 @@ you set up earlier.
 TO DO:
 
 Suppress transitions link if only one state is defined.
-
-Notify user that transitions must exist prior to actions being associated.
 
 Action menu is showing state mapping to itself. Bug or feature?
