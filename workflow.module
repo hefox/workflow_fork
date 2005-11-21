@@ -148,25 +148,26 @@ function workflow_nodeapi(&$node, $op, $teaser = NULL, $page = NULL) {
 function workflow_field_form($node) {
   $form = array();
   $choices = workflow_field_choices($node);
-  ksort($choices);
-  if (count($choices) > 1) {
-    $wid = workflow_get_workflow_for_type($node->type);
-    $name = workflow_get_name($wid);
-    $current = workflow_node_current_state($node);
-    $form['workflow'] = array(
-      '#type' => 'fieldset',
-      '#title' => $name,
-      '#collapsible' => TRUE,
-      '#collapsed' => true
-    );
-    $form['workflow'][$name] = array(
-    '#type' => 'select',
-    '#title' => $name,
-    '#options' => $choices,
-    '#parents' => array('workflow'),
-    '#default_value' => $current
-    );
+  if (count($choices) < 2) { // bail out if user has no new target state(s)
+    return array();
   }
+  ksort($choices);
+  $wid = workflow_get_workflow_for_type($node->type);
+  $name = workflow_get_name($wid);
+  $current = workflow_node_current_state($node);
+  $form['workflow'] = array(
+  '#type' => 'fieldset',
+  '#title' => $name,
+  '#collapsible' => TRUE,
+  '#collapsed' => true
+  );
+  $form['workflow'][$name] = array(
+  '#type' => 'select',
+  '#title' => $name,
+  '#options' => $choices,
+  '#parents' => array('workflow'),
+  '#default_value' => $current
+  );
   return $form;
 }
 
@@ -227,7 +228,9 @@ function workflow_execute_transition($node, $sid) {
 function workflow_field_choices($node) {
   global $user;
   $wid = workflow_get_workflow_for_type($node->type);
-  if (!$wid) { return false; } // no workflow for this type
+  if (!$wid) { // no workflow for this type
+    return array();  
+  }
   $states = workflow_get_states($wid);
   $roles = array_keys($user->roles);
   $current_sid = workflow_node_current_state($node);
