@@ -69,7 +69,7 @@ CREATE TABLE `workflow_node` (
   `start` timestamp NOT NULL default CURRENT_TIMESTAMP on update CURRENT_TIMESTAMP,
   PRIMARY KEY  (`nid`,`sid`,`uid`,`start`),
   KEY `nid` (`nid`,`sid`)
-) ENGINE=MyISAM;
+) TYPE=MyISAM;
 
 # --------------------------------------------------------
 
