@@ -106,8 +106,9 @@ function workflow_nodeapi(&$node, $op, $teaser = NULL, $page = NULL) {
   switch ($op) {
 
   // need to introduce setting [x] add workflow field to node form
-  case 'form':
-    return workflow_field_form($node);
+  // made obsolete by formapi; now we use workflow_form_alter()
+  //case 'form':
+  //  return workflow_field_form($node);
 
   case 'load':
     $node->_workflow = workflow_node_current_state($node);
@@ -145,30 +146,31 @@ function workflow_nodeapi(&$node, $op, $teaser = NULL, $page = NULL) {
  * @param object &$node
  * @return array
  */
-function workflow_field_form($node) {
-  $form = array();
-  $choices = workflow_field_choices($node);
-  if (count($choices) < 2) { // bail out if user has no new target state(s)
-    return array();
+function workflow_form_alter($form_id, &$form) {
+  if (isset($form['type']) && $form['type']['#value'] .'_node_form' == $form_id) {
+    $node = $form['#node'];
+    $choices = workflow_field_choices($node);
+    if (count($choices) < 2) { // bail out if user has no new target state(s)
+      return;
+    }
+    ksort($choices);
+    $wid = workflow_get_workflow_for_type($node->type);
+    $name = workflow_get_name($wid);
+    $current = workflow_node_current_state($node);
+    $form['workflow'] = array(
+      '#type' => 'fieldset',
+      '#title' => $name,
+      '#collapsible' => TRUE,
+      '#collapsed' => true
+    );
+    $form['workflow'][$name] = array(
+      '#type' => 'select',
+      '#title' => $name,
+      '#options' => $choices,
+      '#parents' => array('workflow'),
+      '#default_value' => intval($current)
+    );
   }
-  ksort($choices);
-  $wid = workflow_get_workflow_for_type($node->type);
-  $name = workflow_get_name($wid);
-  $current = workflow_node_current_state($node);
-  $form['workflow'] = array(
-  '#type' => 'fieldset',
-  '#title' => $name,
-  '#collapsible' => TRUE,
-  '#collapsed' => true
-  );
-  $form['workflow'][$name] = array(
-  '#type' => 'select',
-  '#title' => $name,
-  '#options' => $choices,
-  '#parents' => array('workflow'),
-  '#default_value' => $current
-  );
-  return $form;
 }
 
 /**
@@ -764,7 +766,7 @@ function workflow_types_form() {
 
   $nodetypes = node_get_types();
   foreach ($nodetypes as $type => $name) {
-    $value = $type_map[$type];
+    $value = isset($type_map[$type]) ? $type_map[$type] : 0;
     $form['workflow_mapping'][$type] = array(
       '#type' => 'select',
       '#prefix' => $name,
