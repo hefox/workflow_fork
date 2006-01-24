@@ -1,3 +1,5 @@
+// $Id$
+
 # --------------------------------------------------------
 
 #
@@ -13,7 +15,7 @@ CREATE TABLE `workflow_states` (
   PRIMARY KEY  (`sid`),
   KEY `wid` (`wid`),
   KEY `sysid` (`sysid`)
-) TYPE=MyISAM;
+) TYPE=MyISAM /*!40100 DEFAULT CHARACTER SET utf8 */;
 
 
 # --------------------------------------------------------
@@ -30,7 +32,7 @@ CREATE TABLE `workflow_transitions` (
   PRIMARY KEY  (`tid`),
   KEY `sid` (`sid`),
   KEY `target_sid` (`target_sid`)
-) TYPE=MyISAM;
+) TYPE=MyISAM /*!40100 DEFAULT CHARACTER SET utf8 */;
  
 # --------------------------------------------------------
 
@@ -42,7 +44,7 @@ CREATE TABLE `workflows` (
   `wid` int(10) unsigned NOT NULL default '0',
   `name` varchar(255) NOT NULL default '',
   PRIMARY KEY  (`wid`)
-) TYPE=MyISAM;
+) TYPE=MyISAM /*!40100 DEFAULT CHARACTER SET utf8 */;
 
 # --------------------------------------------------------
 
@@ -54,7 +56,7 @@ CREATE TABLE `workflow_type_map` (
   `type` varchar(255) NOT NULL default '',
   `wid` int(10) unsigned NOT NULL default '0',
   KEY `type` (`type`,`wid`)
-) TYPE=MyISAM;
+) TYPE=MyISAM /*!40100 DEFAULT CHARACTER SET utf8 */;
   
 # --------------------------------------------------------
 
@@ -69,7 +71,7 @@ CREATE TABLE `workflow_node` (
   `start` timestamp NOT NULL default CURRENT_TIMESTAMP on update CURRENT_TIMESTAMP,
   PRIMARY KEY  (`nid`,`sid`,`uid`,`start`),
   KEY `nid` (`nid`,`sid`)
-) TYPE=MyISAM;
+) TYPE=MyISAM /*!40100 DEFAULT CHARACTER SET utf8 */;
 
 # --------------------------------------------------------
 
@@ -82,5 +84,5 @@ CREATE TABLE `workflow_actions` (
   `aid` varchar(255) NOT NULL default '0',
   `weight` int(10) unsigned NOT NULL default '0',
   KEY `tid` (`tid`)
-) TYPE=MyISAM;
+) TYPE=MyISAM /*!40100 DEFAULT CHARACTER SET utf8 */;
 

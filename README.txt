@@ -124,8 +124,3 @@ you set up earlier.
 
 
 ********************************************************************
-TO DO:
-
-Suppress transitions link if only one state is defined.
-
-Action menu is showing state mapping to itself. Bug or feature?
