@@ -2,6 +2,7 @@
 // $Id$
 
 define('WORKFLOW_CREATION', 1);
+define('WORKFLOW_ARROW', '&nbsp;&nbsp;--&gt;&nbsp;&nbsp;');
 
 /**
  * Implementation of hook_help().
@@ -10,8 +11,8 @@ function workflow_help($section) {
   switch ($section) {
     case 'admin/modules#description':
       return t('Enables users to manage content using workflow states.');
-    case strstr($section, 'admin/workflow/transition'):
-      return t('You are currently editing the possible transitions to and from a workflow state. The state is shown in the middle column. To the left, check all states that may come before this state. To the right, check all states that may come after this state. For example, you may have a workflow with three states, <em>draft</em>, <em>review</em>, and <em>published</em>. You probably would want the <em>draft</em> state to be able to move to the <em>review</em> state.');
+    case strstr($section, 'admin/workflow/edit'):
+      return t('You are currently viewing the possible transitions to and from workflow states. The state is shown in the left column; the state to be moved to is to the right. For each transition, check the box next to the role(s) that may initiate the transition. For example, if only the hulking_editor role may move a node from Review state to the Published state, check the box next to hulking_editor. The author role is built in and refers to the user who authored the node.');
     case 'admin/workflow/add':
       return t('To get started, provide a name for your workflow. This name will be used as a label when the workflow status is shown during node editing.');
     case strstr($section, 'admin/workflow/state'):
@@ -46,6 +47,12 @@ function workflow_menu($may_cache) {
       'access'   => $access,
       'type'     => MENU_CALLBACK,
       'callback' => 'workflow_edit');
+
+    $items[] = array('path' => 'admin/workflow/permissions',
+      'title'    => t('Permissions summary'),
+      'access'   => $access,
+      'type'     => MENU_LOCAL_TASK,
+      'callback' => 'workflow_permissions');
 
       $items[] = array('path' => 'admin/workflow/list',
       'title'    => t('List'),
@@ -366,6 +373,51 @@ function workflow_delete_confirm_submit($form_id, $form_values) {
 }
 
 /**
+ * View workflow permissions by role
+ *
+ * @param $wid
+ *   The ID of the workflow
+ */
+function workflow_permissions($wid) {
+  $name = workflow_get_name($wid);
+  $result = db_query("SELECT sid, state FROM {workflow_states} WHERE wid = %d", $wid);
+  $states = array();
+  while ($data = db_fetch_object($result)) {
+    $states[$data->sid] = $data->state;
+  }
+
+  $all = array();
+  $result = db_query("SELECT * FROM {workflow_transitions}");
+  while ($data = db_fetch_object($result)) {
+    if (isset($states[$data->sid])) {
+      foreach (explode(',', $data->roles) as $role) {
+        $all[$role][] = array($data->sid, $data->target_sid);
+      }
+    }
+  }
+
+  $output = '';
+  $role_names = user_roles();
+  $header = array(t('From'), '', t('To'));
+  foreach ($all as $role_id => $transitions) {
+    $rows = array();
+    $role = $role_id == 'author' ? 'author' : $role_names[$role_id];
+    foreach ($transitions as $transition) {
+      list($from, $to) = $transition;
+      $rows[] = array($states[$from], WORKFLOW_ARROW, $states[$to]);
+    }
+   $output .= '<h3>' . t("%role may do these transitions:", array('%role' => $role)) . '</h3>';
+   if ($rows) {
+       $output .= theme('table', $header, $rows);
+    }
+    else {
+      $output .= t('None');
+    }
+  }
+  return $output;
+}
+
+/**
  * Menu callback to edit a workflow's properties.
  *
  * @param $wid
@@ -389,7 +441,9 @@ function workflow_edit($wid) {
   $form['wid'] = array('#type' => 'value', '#value' => $wid);
   $form['#theme'] = 'workflow_edit';
   $form['transitions']['#tree'] = true;
+
   $output = drupal_get_form('workflow_edit', $form);
+  $output .= workflow_permissions($wid);
   return $output;
 }
 
@@ -826,6 +880,10 @@ function workflow_actions_remove_confirm_submit($form_id, $form_values) {
 }
 
 function workflow_actions_form($wid) {
+  if (!module_exist('actions')) {
+    drupal_set_message(t('Before you can assign actions you must install and enable the actions module.'), 'error');
+    drupal_goto('admin/workflow');
+  }
   $result = workflow_actions_form_build($wid);
   $form = $result[1];
   $output = workflow_actions_form_build($wid, $form);
@@ -917,7 +975,7 @@ function workflow_actions_form_build($wid, $form = NULL) {
       $action_table = theme('table', array(), $inner_row);
       $row[] = array(
         array('data' => $state),
-        array('data' => '&nbsp;&nbsp;--&gt;&nbsp;&nbsp;'),
+        array('data' => WORKFLOW_ARROW),
         array('data' => $name),
         array('data' => $action_table)
         );
@@ -1212,6 +1270,6 @@ function workflow_actions_remove($tid, $aid) {
  */
 function _workflow_node_to_state($node, $sid) {
   global $user;
-  db_query("INSERT INTO {workflow_node} (nid, sid, uid) VALUES (%d, %d, %d)",
-    $node->nid, $sid, $user->uid);
+  db_query("INSERT INTO {workflow_node} (nid, sid, uid, start) VALUES (%d, %d, %d, %d)",
+    $node->nid, $sid, $user->uid, time());
 }
