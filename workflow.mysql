@@ -68,7 +68,7 @@ CREATE TABLE `workflow_node` (
   `nid` int(10) unsigned NOT NULL default '0',
   `sid` int(10) unsigned NOT NULL default '0',
   `uid` int(10) unsigned NOT NULL default '0',
-  `start` int(11) NOT NULL default '0',
+  `start` int(11) unsigned NOT NULL default '0',
   PRIMARY KEY  (`nid`,`sid`,`uid`,`start`),
   KEY `nid` (`nid`,`sid`)
 ) TYPE=MyISAM /*!40100 DEFAULT CHARACTER SET utf8 */;
