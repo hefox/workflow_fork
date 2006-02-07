@@ -48,13 +48,7 @@ function workflow_menu($may_cache) {
       'type'     => MENU_CALLBACK,
       'callback' => 'workflow_edit');
 
-    $items[] = array('path' => 'admin/workflow/permissions',
-      'title'    => t('Permissions summary'),
-      'access'   => $access,
-      'type'     => MENU_LOCAL_TASK,
-      'callback' => 'workflow_permissions');
-
-      $items[] = array('path' => 'admin/workflow/list',
+    $items[] = array('path' => 'admin/workflow/list',
       'title'    => t('List'),
       'access'   => $access,
       'weight'   => -10,
