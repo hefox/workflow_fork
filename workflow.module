@@ -113,7 +113,7 @@ function workflow_nodeapi(&$node, $op, $teaser = NULL, $page = NULL) {
 
   case 'load':
     $node->_workflow = workflow_node_current_state($node);
-    break;
+      break;
 
     case 'insert':
     case 'update':
@@ -179,7 +179,7 @@ function workflow_form_alter($form_id, &$form) {
  *
  * @param object $node
  * @param int $sid
- *   ID of new state.
+ * @return int ID of new state.
  */
 function workflow_execute_transition($node, $sid) {
   $old_sid = workflow_node_current_state($node);
@@ -220,6 +220,68 @@ function workflow_execute_transition($node, $sid) {
   // Notify modules that transition has occurred. Actions should take place
   // in response to this callback, not the previous one.
   module_invoke_all('workflow', 'transition post', $old_sid, $sid, $node);
+}
+
+/**
+ * Implementation of a Drupal action.
+ * Changes the workflow state of a node to the next state of the workflow.
+ *
+ */
+function action_workflow_execute_transition($op, $edit = array(), &$node) {
+  switch($op) {
+    case 'do':
+      // if this action is being fired because it's attached to a workflow transition
+      // then the node's new state (now it's current state) should be in $node->workflow;
+      // otherwise the current state is placed in $node->_workflow by our nodeapi load
+      if (!isset($node->workflow) && !isset($node->_workflow)) {
+        watchdog('workflow', t('Unable to get current workflow state of node %nid.', array('%nid' => $node->nid)));
+        return;
+      }
+      $current_state = isset($node->workflow) ? $node->workflow : $node->_workflow;
+      
+      // get the node's new state
+      //$new_state = $edit['target_state']; // change to specific state not yet implemented
+      $new_state = '';
+      if ($new_state == '') {
+        $choices = workflow_field_choices($node);
+        foreach ($choices as $sid => $name) {
+          if (isset($flag)) {
+            $new_state = $sid;
+            $new_state_name = $name;
+            break;
+          }
+          if ($sid == $current_state) {
+            $flag = TRUE;
+          }
+        }
+      }
+      
+      // fire the transition
+      watchdog('action', t('Changing workflow state of node id %id to %state', array('%id' => intval($node->nid), '%state' => check_plain($new_state_name))));
+      workflow_execute_transition($node, $new_state);
+      watchdog('action', t('Changed workflow state of node id %id to %state', array('%id' => intval($node->nid), '%state' => check_plain($new_state_name))));
+      break;
+
+    case 'metadata':
+      return array(
+        'description' => t('Change workflow state of a node to next state'),
+        'type' => t('Workflow'),
+        'batchable' => true,
+        'configurable' => false,
+      );
+
+    // return an HTML config form for the action
+    case 'form':
+      return '';
+
+    // validate the HTML form
+    case 'validate':
+      return TRUE;
+
+    // process the HTML form to store configuration
+    case 'submit':
+      return '';
+  }
 }
 
 /**
@@ -313,7 +375,7 @@ function workflow_add_form($name = NULL) {
     '#title' => t('Workflow Name'),
     '#size' => '16',
     '#maxlength' => '254',
-    '#value' => $name
+    '#default_value' => $name
     );
   $form['submit'] = array('#type' => 'submit', '#value' => t('Add Workflow'));
   $output = drupal_get_form('workflow_add_form', $form);
@@ -1084,10 +1146,9 @@ function workflow_deletewf($wid) {
  *
  * @return
  *   An array of workflow states keyed by state ID.
- *
  */
 function workflow_get_states($wid) {
-  $result = db_query("SELECT * FROM {workflow_states} WHERE wid = %d ORDER BY sid", intval($wid));
+  $result = db_query("SELECT sid, state FROM {workflow_states} WHERE wid = %d ORDER BY sid", intval($wid));
   while ($data = db_fetch_object($result)) {
     $states[$data->sid] = $data->state;
   }
