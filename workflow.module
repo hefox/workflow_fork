@@ -1328,3 +1328,121 @@ function _workflow_node_to_state($node, $sid) {
   db_query("INSERT INTO {workflow_node} (nid, sid, uid, start) VALUES (%d, %d, %d, %d)",
     $node->nid, $sid, $user->uid, time());
 }
+
+/**
+ * Implementation of hook_views_tables()
+ */
+
+function workflow_views_tables() {
+  $table = array(
+    'name' => 'workflow_node',
+    'provider' => 'workflow',
+    'join' => array(
+      'left' => array(
+        'table' => 'node',
+        'field' => 'nid',
+       ),
+       'right' => array(
+         'field' => 'nid',
+       ),
+     ),
+    "filters" => array(
+      'sid' => array(
+        'name' => t('Workflow: state'),
+        'operator' => 'views_handler_operator_andor',
+        'list' => 'workflow_handler_filter_sid',
+        'help' => t('Include only nodes in the selected workflow states.'),
+      ),
+    )
+  );
+  $tables[$table['name']] = $table;
+
+  $table = array(
+    'name' => 'workflow_states',
+    'provider' => 'workflow',
+    'join' => array(
+      'left' => array(
+        'table' => 'workflow_node',
+        'field' => 'sid',
+       ),
+       'right' => array(
+         'field' => 'sid',
+       ),
+     ),
+    "sorts" => array(
+      'weight' => array(
+        'name' => t('Workflow: state'),
+        'field' => array('weight', 'state'),
+        'help' => t('Order nodes by workflow state.'),
+      ),
+    ),
+    "fields" => array(
+      'state' => array(
+        'name' => t('Workflow: state'),
+        'sortable' => true,
+        'help' => t('Display the workflow state of the node.'),
+      ),
+    ),
+  );
+  $tables[$table['name']] = $table;
+
+  return $tables;
+}
+
+/**
+ * Implementation of hook_views_arguments()
+ */
+
+function workflow_views_arguments() {
+  $arguments = array(
+    'workflow_state' => array(
+      'name' => t('Workflow: state'), 
+      'handler' => 'workflow_handler_arg_sid',
+      'help' => t('The work flow argument allows users to filter a view by workflow state.'),
+    ),
+  );
+  return $arguments;
+}
+
+/**
+ * Handler to provide a list of workflow states for the filter list
+ */
+function workflow_handler_filter_sid() {
+  $result = db_query("SELECT sid, state FROM {workflow_states} ORDER BY weight, state");
+  while ($data = db_fetch_object($result)) {
+    $states[$data->sid] = $data->state;
+  }
+
+  return $states;
+}
+
+/**
+ * Handler to deal with sid as an argument.
+ */
+
+function workflow_handler_arg_sid($op, &$query, $argtype, $arg = '') {
+  switch($op) {
+    case 'summary':
+      $query->add_table('workflow_states', true);
+      $fieldinfo['field'] = "workflow_states.sid";
+      $query->add_field('sid', 'workflow_states');
+      $query->add_field('state', 'workflow_states');
+      $query->add_where('workflow_node.sid IS NOT NULL');
+      return $fieldinfo;
+      break;
+    case 'filter':
+      $query->add_table('workflow_states', true);
+      if (is_numeric($arg)) {
+        $query->add_where("workflow_states.sid = %d", $arg);
+      }
+      else {
+        $query->add_where("workflow_states.state = '%s'", $arg);
+      }
+      break;
+    case 'link':
+      return l($query->state, "$arg/$query->sid");
+    case 'title':
+      $state = db_fetch_object(db_query("SELECT state FROM {workflow_states} WHERE sid=%d", $query));
+      return $state->state;
+  }
+}
