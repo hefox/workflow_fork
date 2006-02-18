@@ -156,20 +156,21 @@ function workflow_form_alter($form_id, &$form) {
     }
     ksort($choices);
     $wid = workflow_get_workflow_for_type($node->type);
-    $name = workflow_get_name($wid);
+    $name = check_plain(workflow_get_name($wid));
     $current = workflow_node_current_state($node);
     $form['workflow'] = array(
       '#type' => 'fieldset',
       '#title' => $name,
       '#collapsible' => TRUE,
-      '#collapsed' => true
+      '#collapsed' => FALSE,
     );
     $form['workflow'][$name] = array(
-      '#type' => 'select',
+      '#type' => 'radios',
       '#title' => $name,
       '#options' => $choices,
+      '#name' => $name,
       '#parents' => array('workflow'),
-      '#default_value' => intval($current)
+      '#default_value' => $current
     );
   }
 }
