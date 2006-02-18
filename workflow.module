@@ -2,7 +2,7 @@
 // $Id$
 
 define('WORKFLOW_CREATION', 1);
-define('WORKFLOW_ARROW', '&nbsp;&nbsp;--&gt;&nbsp;&nbsp;');
+define('WORKFLOW_ARROW', '&#8594;');
 
 /**
  * Implementation of hook_help().
@@ -513,7 +513,7 @@ function theme_workflow_edit($form) {
     while ($data = db_fetch_object($result)) {
       $roles[$data->rid] = $data->name;
     }
-    $header = array(array('data' => t('From / To -->')));
+    $header = array(array('data' => t('From / To ') . '&nbsp;' . WORKFLOW_ARROW));
     $rows = array();
     foreach ($states as $state_id => $name) {
       if ($name != '(creation)') { // don't allow transition TO (creation)
