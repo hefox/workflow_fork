@@ -158,6 +158,15 @@ function workflow_form_alter($form_id, &$form) {
     $wid = workflow_get_workflow_for_type($node->type);
     $name = check_plain(workflow_get_name($wid));
     $current = workflow_node_current_state($node);
+    
+    // if the current node state is not one of the choices, autoselect first choice
+    // we know all states in $choices are states that user has permission to
+    // go to because workflow_field_choices() has already checked that
+    if (!isset($choices[$current])) {
+      $array = array_keys($choices);
+      $current = $array[0];
+    }
+    
     $form['workflow'] = array(
       '#type' => 'fieldset',
       '#title' => $name,
@@ -318,7 +327,7 @@ function workflow_field_choices($node) {
  * Get the current state of a given node.
  *
  * @param object $node
- * @return bool
+ * @return string state ID
  */
 function workflow_node_current_state($node) {
   $sid = db_result(db_query("SELECT sid FROM {workflow_node} WHERE nid=%d ".
