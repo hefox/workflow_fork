@@ -1,0 +1,89 @@
+<?php
+// $Id:
+
+function workflow_install() {
+  switch ($GLOBALS['db_type']) {
+    case 'mysqli':
+    case 'mysql':
+      $query1 = db_query(
+<<<QUERY
+CREATE TABLE workflow_states (
+  sid int(10) unsigned NOT NULL default '0',
+  wid int(10) unsigned NOT NULL default '0',
+  state varchar(255) NOT NULL default '',
+  weight tinyint(4) NOT NULL default '0',
+  sysid tinyint(4) NOT NULL default '0',
+  PRIMARY KEY  (sid),
+  KEY wid (wid),
+  KEY sysid (sysid)
+) /*!40100 DEFAULT CHARACTER SET utf8 */;
+QUERY
+      );
+      
+      $query2 = db_query(
+<<<QUERY
+CREATE TABLE workflow_transitions (
+  tid int(10) unsigned NOT NULL default '0',
+  sid int(10) unsigned NOT NULL default '0',
+  target_sid int(10) unsigned NOT NULL default '0',
+  roles varchar(60) default NULL,
+  PRIMARY KEY  (tid),
+  KEY sid (sid),
+  KEY target_sid (target_sid)
+) /*!40100 DEFAULT CHARACTER SET utf8 */;
+QUERY
+      );
+
+      $query3 = db_query(
+<<<QUERY
+CREATE TABLE workflows (
+  wid int(10) unsigned NOT NULL default '0',
+  name varchar(255) NOT NULL default '',
+  PRIMARY KEY  (wid)
+) /*!40100 DEFAULT CHARACTER SET utf8 */;
+QUERY
+       );
+
+      $query4 = db_query(
+<<<QUERY
+CREATE TABLE workflow_type_map (
+  type varchar(255) NOT NULL default '',
+  wid int(10) unsigned NOT NULL default '0',
+  KEY type (type,wid)
+) /*!40100 DEFAULT CHARACTER SET utf8 */;
+QUERY
+      );
+
+      $query5 = db_query(
+<<<QUERY
+CREATE TABLE workflow_node (
+  nid int(10) unsigned NOT NULL default '0',
+  sid int(10) unsigned NOT NULL default '0',
+  uid int(10) unsigned NOT NULL default '0',
+  start int(11) unsigned NOT NULL default '0',
+  PRIMARY KEY  (nid,sid,uid,start),
+  KEY nid (nid,sid)
+) /*!40100 DEFAULT CHARACTER SET utf8 */;
+QUERY
+       );
+
+      $query6 = db_query(
+<<<QUERY
+CREATE TABLE workflow_actions (
+  tid int(10) unsigned NOT NULL default '0',
+  aid varchar(255) NOT NULL default '0',
+  weight int(10) unsigned NOT NULL default '0',
+  KEY tid (tid)
+) /*!40100 DEFAULT CHARACTER SET utf8 */;
+QUERY
+      );
+      
+      if ($query1 && $query2 && $query3 && $query4 && $query5 && $query6) {
+      	drupal_set_message(t('The workflow module has successfully added six tables to the MySQL database'));
+      }
+      else {
+      	drupal_set_message(t('Drupal was unable to install the database tables for the workflow module.'));
+      }
+      break;
+  }
+}

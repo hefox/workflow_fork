@@ -1290,6 +1290,9 @@ function workflow_types_delete($wid) {
  */
 function workflow_get_actions($tid) {
   $actions = array();
+  if (function_exists('actions_do')) {
+    return $actions;
+  }
   $result = db_query("SELECT a.aid, a.description FROM {actions} a INNER JOIN {workflow_actions} w ON a.aid = w.aid WHERE w.tid = %d", $tid);
   while ($data = db_fetch_object($result)) {
     $actions[$data->aid] = $data->description;

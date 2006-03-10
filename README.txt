@@ -3,7 +3,7 @@
 ********************************************************************
 Name: Workflow Module
 Author: John VanDyk <jvandyk at iastate dot edu>
-Drupal: cvs
+Drupal: 4.7
 ********************************************************************
 DESCRIPTION:
 
@@ -26,22 +26,15 @@ INSTALLATION:
 1. Place the entire workflow directory into your Drupal modules/
    directory.
 
-2. Create the necessary database tables using the workflow.mysql
-   file and the tool of your choice. For example, you could use
-   PhpMyAdmin, to upload the workflow.mysql file or run the following
-   from the command line:
 
-     mysql -u user -p drupal < workflow.mysql
-
-   Replace 'user' with the MySQL username that has permission to modify
-   the database, and 'drupal' with the database being written to. The
-   database must already be created.
-
-3. Enable the workflow module by navigating to:
+2. Enable the workflow module by navigating to:
 
      administer > modules
 
-4. If you want anyone besides the administrative user to be able
+   Enabling the workflow module will create the necessary database 
+   tables for you.
+
+3. If you want anyone besides the administrative user to be able
    to configure workflows (usually a bad idea), they must be given
    the "administer workflow" access permission:
    
@@ -50,16 +43,6 @@ INSTALLATION:
    When the module is enabled and the user has the "administer
    workflow" permission, a "workflow" menu should appear in the 
    menu system.
-
-********************************************************************
-NOTES:
-
-If you get an error that looks like
-
-"user error: Table 'drupal.workflows' doesn't exist"
-
-when you go to admin/workflows, it means that you have missed step 2,
-above.
 
 ********************************************************************
 GETTING STARTED:
