@@ -1,5 +1,5 @@
 <?php
-// $Id:
+// $Id$
 
 function workflow_install() {
   switch ($GLOBALS['db_type']) {
@@ -7,7 +7,7 @@ function workflow_install() {
     case 'mysql':
       $query1 = db_query(
 <<<QUERY
-CREATE TABLE workflow_states (
+CREATE TABLE IF NOT EXISTS {workflow_states} (
   sid int(10) unsigned NOT NULL default '0',
   wid int(10) unsigned NOT NULL default '0',
   state varchar(255) NOT NULL default '',
@@ -22,7 +22,7 @@ QUERY
       
       $query2 = db_query(
 <<<QUERY
-CREATE TABLE workflow_transitions (
+CREATE TABLE IF NOT EXISTS {workflow_transitions} (
   tid int(10) unsigned NOT NULL default '0',
   sid int(10) unsigned NOT NULL default '0',
   target_sid int(10) unsigned NOT NULL default '0',
@@ -36,7 +36,7 @@ QUERY
 
       $query3 = db_query(
 <<<QUERY
-CREATE TABLE workflows (
+CREATE TABLE IF NOT EXISTS {workflows} (
   wid int(10) unsigned NOT NULL default '0',
   name varchar(255) NOT NULL default '',
   PRIMARY KEY  (wid)
@@ -46,7 +46,7 @@ QUERY
 
       $query4 = db_query(
 <<<QUERY
-CREATE TABLE workflow_type_map (
+CREATE TABLE IF NOT EXISTS {workflow_type_map} (
   type varchar(255) NOT NULL default '',
   wid int(10) unsigned NOT NULL default '0',
   KEY type (type,wid)
@@ -56,12 +56,11 @@ QUERY
 
       $query5 = db_query(
 <<<QUERY
-CREATE TABLE workflow_node (
+CREATE TABLE IF NOT EXISTS {workflow_node} (
   nid int(10) unsigned NOT NULL default '0',
   sid int(10) unsigned NOT NULL default '0',
   uid int(10) unsigned NOT NULL default '0',
-  start int(11) unsigned NOT NULL default '0',
-  PRIMARY KEY  (nid,sid,uid,start),
+  PRIMARY KEY  (nid),
   KEY nid (nid,sid)
 ) /*!40100 DEFAULT CHARACTER SET utf8 */;
 QUERY
@@ -69,7 +68,7 @@ QUERY
 
       $query6 = db_query(
 <<<QUERY
-CREATE TABLE workflow_actions (
+CREATE TABLE IF NOT EXISTS {workflow_actions} (
   tid int(10) unsigned NOT NULL default '0',
   aid varchar(255) NOT NULL default '0',
   weight int(10) unsigned NOT NULL default '0',
@@ -78,12 +77,62 @@ CREATE TABLE workflow_actions (
 QUERY
       );
       
-      if ($query1 && $query2 && $query3 && $query4 && $query5 && $query6) {
-      	drupal_set_message(t('The workflow module has successfully added six tables to the MySQL database'));
+      $query7 = db_query(
+<<<QUERY
+CREATE TABLE IF NOT EXISTS {workflow_node_history} (
+  nid int(10) unsigned NOT NULL default '0',
+  sid int(10) unsigned NOT NULL default '0',
+  uid int(10) unsigned NOT NULL default '0',
+  stamp int(11) unsigned NOT NULL default '0',
+  KEY nid (nid,sid)
+) /*!40100 DEFAULT CHARACTER SET utf8 */;
+QUERY
+      );
+            
+      if ($query1 && $query2 && $query3 && $query4 && $query5 && $query6 && $query7) {
+      	drupal_set_message(t('The workflow module has successfully added tables to the MySQL database.'));
       }
       else {
       	drupal_set_message(t('Drupal was unable to install the database tables for the workflow module.'));
       }
       break;
   }
+}
+
+// Introduce workflow_node_history table so workflow_node is joinable for views.module
+function workflow_update_1() {
+  $ret = array();
+  
+  // Create new workflow_node_history table
+  $ret[] = update_sql("
+CREATE TABLE {workflow_node_history} (
+  nid int( 10 ) unsigned NOT NULL default '0',
+  sid int( 10 ) unsigned NOT NULL default '0',
+  uid int( 10 ) unsigned NOT NULL default '0',
+  stamp int( 11 ) unsigned NOT NULL default '0',
+  KEY nid ( nid , sid )
+) /*!40100 DEFAULT CHARACTER SET utf8 */;
+");
+
+  // Copy data from the current workflow_node table
+  $ret[] = update_sql("
+INSERT INTO {workflow_node_history}
+SELECT *
+FROM {workflow_node}
+");
+
+  // Delete older entries
+  $result = db_query("SELECT w1.* FROM {workflow_node} w1 LEFT JOIN {workflow_node} AS w2 ON w1.nid = w2.nid AND w1.start < w2.start WHERE w2.start is NULL");
+  while ($record = db_fetch_array($result)) {
+    db_query("DELETE FROM {workflow_node} WHERE nid = %d", $record['nid']);
+    db_query("INSERT INTO {workflow_node} (nid, sid, uid) VALUES (%d, %d, %d)", $record['nid'], $record['sid'], $record['uid']);
+  }
+
+  $ret[] = update_sql("ALTER TABLE {workflow_node} DROP PRIMARY KEY");
+  $ret[] = update_sql("ALTER TABLE {workflow_node} DROP start");
+
+  // We can now use a unique primary key
+  $ret[] = update_sql("ALTER TABLE {workflow_node} ADD PRIMARY KEY (nid)");
+  
+  return $ret;
 }

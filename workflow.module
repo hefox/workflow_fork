@@ -330,8 +330,8 @@ function workflow_field_choices($node) {
  * @return string state ID
  */
 function workflow_node_current_state($node) {
-  $sid = db_result(db_query("SELECT sid FROM {workflow_node} WHERE nid=%d ".
-    "ORDER BY start DESC LIMIT 1", $node->nid));
+  $sid = db_result(db_query("SELECT sid FROM {workflow_node} WHERE nid=%d ", $node->nid));
+
   if (!$sid) {
     $wid = workflow_get_workflow_for_type($node->type);
     $sid = _workflow_creation_state($wid);
@@ -1290,7 +1290,7 @@ function workflow_types_delete($wid) {
  */
 function workflow_get_actions($tid) {
   $actions = array();
-  if (function_exists('actions_do')) {
+  if (!function_exists('actions_do')) {
     return $actions;
   }
   $result = db_query("SELECT a.aid, a.description FROM {actions} a INNER JOIN {workflow_actions} w ON a.aid = w.aid WHERE w.tid = %d", $tid);
@@ -1338,8 +1338,13 @@ function workflow_actions_remove($tid, $aid) {
  */
 function _workflow_node_to_state($node, $sid) {
   global $user;
-  db_query("INSERT INTO {workflow_node} (nid, sid, uid, start) VALUES (%d, %d, %d, %d)",
-    $node->nid, $sid, $user->uid, time());
+  if (db_result(db_query("SELECT nid FROM {workflow_node} WHERE nid = %d", $node->nid))) {
+   db_query("UPDATE {workflow_node} SET sid = %d, uid = %d WHERE nid = %d", $sid, $user->uid, $node->nid);    
+  }
+  else {
+    db_query("INSERT INTO {workflow_node} (nid, sid, uid) VALUES (%d, %d, %d)", $node->nid, $sid, $user->uid);
+  }
+  db_query("INSERT INTO {workflow_node_history} (nid, sid, uid, stamp) VALUES (%d, %d, %d, %d)", $node->nid, $sid, $user->uid, time());
 }
 
 /**
