@@ -126,7 +126,9 @@ function workflow_nodeapi(&$node, $op, $teaser = NULL, $page = NULL) {
       // get new state
       $sid = $node->workflow;
       if (!$sid && $op == 'insert') { // if not specified, use first valid
-        $sid = array_shift(array_keys(workflow_field_choices($node)));
+        $choices = workflow_field_choices($node);
+        $keys = array_keys($choices);
+        $sid = array_shift($keys);
       }
 
       // make sure new state is a valid choice
