@@ -136,3 +136,9 @@ FROM {workflow_node}
   
   return $ret;
 }
+
+function workflow_update_2() {
+//Make all tables utf 8 compatible, workflow_node_history covered above.
+return _system_update_utf8(array('workflow_actions', 'workflow_node', 'workflow_states', 'workflow_transitions', 'workflow_type_map', 'workflows'));
+}
+?>
