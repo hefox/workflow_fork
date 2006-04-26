@@ -594,7 +594,7 @@ function workflow_edit_submit($form_id, $form_values) {
   workflow_update_name($form_values['wid'], $form_values['wf_name']);
   workflow_update_transitions($form_values['transitions']);
   drupal_set_message(t('Workflow updated.'));
-  drupal_goto('admin/workflow');
+  return('admin/workflow');
 }
 
 /**
@@ -629,7 +629,7 @@ function workflow_state_add_validate($form_id, $form_values) {
 function workflow_state_add_submit($form_id, $form_values) {
   workflow_state_create($form_values['wid'], $form_values['state_name']);
   drupal_set_message(t('The workflow state was created.'));
-  drupal_goto('admin/workflow');
+  return('admin/workflow');
 }
 
 /**
@@ -849,14 +849,6 @@ function workflow_state_delete_form($wid, $sid) {
   $form['sid'] = array('#type' => 'value', '#value' => $sid);
   $output = confirm_form('workflow_state_delete_confirm', $form, t('Are you sure you want to delete %title (and all its transitions)?', array('%title' => theme('placeholder', $states[$sid]))), $_GET['destination'] ? $_GET['destination'] : 'admin/workflow', t('This action cannot be undone.'), t('Delete'), t('Cancel')  );
   return $output;
-
- /*
-  $output .= form_item(t('Confirm deletion'), t("Really delete workflow state '%state' (and all of its transitions)?", array('%state' => $states[$sid])));
-    $output .= form_hidden('confirm', 1);
-    $output .= form_submit(t('Delete'));
-
-  return form($output);
-  */
 }
 
 function workflow_state_delete_confirm_submit($form_id, $form_values) {
@@ -866,7 +858,7 @@ function workflow_state_delete_confirm_submit($form_id, $form_values) {
     workflow_state_delete($form_values['sid']);
     drupal_set_message(t('The workflow state %title was deleted.', array('%title' => theme('placeholder', $state))));
   }
-  drupal_goto('admin/workflow');
+  return('admin/workflow');
 }
 
 function workflow_types_form() {
@@ -923,7 +915,7 @@ function theme_workflow_types_form($form) {
 function workflow_type_form_submit($form_id, $form_values) {
   workflow_types_save($form_values);
   drupal_set_message(t('The workflow mapping was saved.'));
-  drupal_goto('admin/workflow');
+  return('admin/workflow');
 }
 
 function workflow_actions_remove_form($wid, $tid, $aid) {
@@ -943,7 +935,7 @@ function workflow_actions_remove_confirm_submit($form_id, $form_values) {
     workflow_actions_remove($form_values['tid'], $aid);
     watchdog('workflow', t('Action %action deleted',  array('%action' => check_plain($actions[$aid]))));
     drupal_set_message(t('Action %action deleted.', array('%action' => theme('placeholder', $actions[$aid]))));
-    drupal_goto('/admin/workflow/actions/'. $form_values['wid']);
+    return('/admin/workflow/actions/'. $form_values['wid']);
   }
 }
 
@@ -965,7 +957,7 @@ function workflow_actions_submit($form, $form_values) {
 
   // the form does weird things if we don't do a drupal_goto()
   $wid = arg(3);
-  drupal_goto("admin/workflow/actions/$wid");
+  return("admin/workflow/actions/$wid");
 }
 
 function workflow_actions_form_build($wid, $form = NULL) {
@@ -1341,7 +1333,7 @@ function workflow_actions_remove($tid, $aid) {
 function _workflow_node_to_state($node, $sid) {
   global $user;
   if (db_result(db_query("SELECT nid FROM {workflow_node} WHERE nid = %d", $node->nid))) {
-   db_query("UPDATE {workflow_node} SET sid = %d, uid = %d WHERE nid = %d", $sid, $user->uid, $node->nid);    
+   db_query("UPDATE {workflow_node} SET sid = %d, uid = %d WHERE nid = %d", $sid, $user->uid, $node->nid);
   }
   else {
     db_query("INSERT INTO {workflow_node} (nid, sid, uid) VALUES (%d, %d, %d)", $node->nid, $sid, $user->uid);
