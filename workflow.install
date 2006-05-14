@@ -39,6 +39,7 @@ QUERY
 CREATE TABLE IF NOT EXISTS {workflows} (
   wid int(10) unsigned NOT NULL default '0',
   name varchar(255) NOT NULL default '',
+  tab_roles varchar(60) NOT NULL default '',
   PRIMARY KEY  (wid)
 ) /*!40100 DEFAULT CHARACTER SET utf8 */;
 QUERY
@@ -81,9 +82,11 @@ QUERY
 <<<QUERY
 CREATE TABLE IF NOT EXISTS {workflow_node_history} (
   nid int(10) unsigned NOT NULL default '0',
+  old_sid int(10) unsigned NOT NULL default '0',
   sid int(10) unsigned NOT NULL default '0',
   uid int(10) unsigned NOT NULL default '0',
   stamp int(11) unsigned NOT NULL default '0',
+  comment longtext,
   KEY nid (nid,sid)
 ) /*!40100 DEFAULT CHARACTER SET utf8 */;
 QUERY
@@ -99,7 +102,7 @@ QUERY
   }
 }
 
-// Introduce workflow_node_history table so workflow_node is joinable for views.module
+// Introduce workflow_node_history table so workflow_node is joinable for views.module.
 function workflow_update_1() {
   $ret = array();
   
@@ -137,8 +140,18 @@ FROM {workflow_node}
   return $ret;
 }
 
+// Make all tables UTF-8 compatible, workflow_node_history covered above.
 function workflow_update_2() {
-//Make all tables utf 8 compatible, workflow_node_history covered above.
 return _system_update_utf8(array('workflow_actions', 'workflow_node', 'workflow_states', 'workflow_transitions', 'workflow_type_map', 'workflows'));
 }
-?>
+
+// Keep record of old states and comment history.
+function workflow_update_3() {
+  $ret = array();
+
+  $ret[] = update_sql("ALTER TABLE {workflow_node_history} ADD old_sid int(10) unsigned AFTER nid");
+  $ret[] = update_sql("ALTER TABLE {workflow_node_history} ADD comment longtext");
+  $ret[] = update_sql("ALTER TABLE {workflows} ADD tab_roles varchar(60)");
+
+  return $ret;
+}
