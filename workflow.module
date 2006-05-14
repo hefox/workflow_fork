@@ -1263,6 +1263,7 @@ function workflow_deletewf($wid) {
  *   An array of workflow states keyed by state ID.
  */
 function workflow_get_states($wid) {
+  $states = array();
   $result = db_query("SELECT sid, state FROM {workflow_states} WHERE wid = %d ORDER BY sid", intval($wid));
   while ($data = db_fetch_object($result)) {
     $states[$data->sid] = $data->state;
