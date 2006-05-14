@@ -141,7 +141,7 @@ function workflow_tab_page($nid) {
     $output .= drupal_get_form('workflow_tab', $form);
   }
 
-  $result = pager_query("SELECT h.*, u.name FROM {workflow_node_history} h LEFT JOIN {users u} ON h.uid = u.uid WHERE nid = %d ORDER BY stamp DESC", $states_per_page, 0, NULL, $nid);
+  $result = pager_query("SELECT h.*, u.name FROM {workflow_node_history} h LEFT JOIN {user} u ON h.uid = u.uid WHERE nid = %d ORDER BY stamp DESC", $states_per_page, 0, NULL, $nid);
   $rows = array();
   while ($history = db_fetch_object($result)) {
     $rows[] = array(
