@@ -311,7 +311,7 @@ function workflow_execute_transition($node, $sid, $comment = NULL) {
       watchdog('workflow', t('Attempt to go to nonexistent transition (from %old to %new)', array('%old' => $old_sid, '%new' => $sid), WATCHDOG_ERROR));
       return;
     }
-    if (!workflow_transition_allowed($tid, array_merge(array_keys($user->roles), 'author'))) {
+    if (!workflow_transition_allowed($tid, array_merge(array_keys($user->roles), array('author')))) {
       watchdog('workflow', t('User %user not allowed to go from state %old to %new)', array('%user' => $user->name, '%old' => $old_sid, '%new' => $sid), WATCHDOG_NOTICE));
       return;
     }
