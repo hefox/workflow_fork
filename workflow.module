@@ -165,7 +165,6 @@ function workflow_tab_submit($form_id, $form_values) {
   // make sure new state is a valid choice
   if (array_key_exists($sid, workflow_field_choices($node))) {
     workflow_execute_transition($node, $sid, $form_values['workflow_comment']); // do transition
-    node_save($node); // ensure na_arbitrator is happy.
   }
   return 'node/' . $node->nid;
 }
