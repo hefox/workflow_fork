@@ -92,7 +92,10 @@ function workflow_menu($may_cache) {
       $wid = workflow_get_workflow_for_type($node->type);
       if ($wid) { // workflow exists for this type
         global $user;
-        $roles = array_merge(array('author'), array_keys($user->roles));
+        $roles = array_keys($user->roles);
+        if ($node->uid == $user->uid) {
+          $roles = array_merge(array('author'), $roles);
+        }
         $workflow = db_fetch_object(db_query("SELECT * FROM {workflows} WHERE wid = %d", $wid));
         $allowed_roles = $workflow->tab_roles ? explode(',', $workflow->tab_roles) : array();
         $items[] = array('path' => "node/$node->nid/workflow",
