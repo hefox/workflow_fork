@@ -235,19 +235,27 @@ function workflow_nodeapi(&$node, $op, $teaser = NULL, $page = NULL) {
  * @param array $choices
  */
 function workflow_node_form(&$form, $title, $name, $current, $choices) {
-  $form['workflow'][$name] = array(
-    '#type' => 'radios',
-    '#title' => $title,
-    '#options' => $choices,
-    '#name' => $name,
-    '#parents' => array('workflow'),
-    '#default_value' => $current
-  );
-  $form['workflow']['workflow_comment'] = array(
-    '#type' => 'textarea',
-    '#title' => t('Comment'),
-    '#description' => t('A comment to put in the workflow log.'),
-  );
+  if (sizeof($choices) == 1) {
+    $form['workflow'][$name] = array(
+      '#type' => 'hidden',
+      '#value' => $current
+    );
+  }
+  else {
+    $form['workflow'][$name] = array(
+      '#type' => 'radios',
+      '#title' => $title,
+      '#options' => $choices,
+      '#name' => $name,
+      '#parents' => array('workflow'),
+      '#default_value' => $current
+    );
+    $form['workflow']['workflow_comment'] = array(
+      '#type' => 'textarea',
+      '#title' => t('Comment'),
+      '#description' => t('A comment to put in the workflow log.'),
+    );
+  }
 }
 
 /**
@@ -278,12 +286,14 @@ function workflow_form_alter($form_id, &$form) {
       $current = $array[0];
     }
 
-    $form['workflow'] = array(
-      '#type' => 'fieldset',
-      '#title' => $name,
-      '#collapsible' => TRUE,
-      '#collapsed' => FALSE,
-    );
+    if (sizeof($choices) > 1) {
+      $form['workflow'] = array(
+        '#type' => 'fieldset',
+        '#title' => $name,
+        '#collapsible' => TRUE,
+        '#collapsed' => FALSE,
+      );
+    }
     workflow_node_form($form, $name, $name, $current, $choices);
   }
 }
