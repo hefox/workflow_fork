@@ -2,12 +2,14 @@
 // $Id$
 
 function workflow_install() {
+  $result = array();
+
   switch ($GLOBALS['db_type']) {
     case 'mysqli':
     case 'mysql':
-      $query1 = db_query(
+      $result[] = db_query(
 <<<QUERY
-CREATE TABLE IF NOT EXISTS {workflow_states} (
+CREATE TABLE {workflow_states} (
   sid int(10) unsigned NOT NULL default '0',
   wid int(10) unsigned NOT NULL default '0',
   state varchar(255) NOT NULL default '',
@@ -20,9 +22,9 @@ CREATE TABLE IF NOT EXISTS {workflow_states} (
 QUERY
       );
       
-      $query2 = db_query(
+      $result[] = db_query(
 <<<QUERY
-CREATE TABLE IF NOT EXISTS {workflow_transitions} (
+CREATE TABLE {workflow_transitions} (
   tid int(10) unsigned NOT NULL default '0',
   sid int(10) unsigned NOT NULL default '0',
   target_sid int(10) unsigned NOT NULL default '0',
@@ -34,20 +36,20 @@ CREATE TABLE IF NOT EXISTS {workflow_transitions} (
 QUERY
       );
 
-      $query3 = db_query(
+      $result[] = db_query(
 <<<QUERY
-CREATE TABLE IF NOT EXISTS {workflows} (
+CREATE TABLE {workflows} (
   wid int(10) unsigned NOT NULL default '0',
   name varchar(255) NOT NULL default '',
   tab_roles varchar(60) NOT NULL default '',
   PRIMARY KEY  (wid)
 ) /*!40100 DEFAULT CHARACTER SET utf8 */;
 QUERY
-       );
+      );
 
-      $query4 = db_query(
+      $result[] = db_query(
 <<<QUERY
-CREATE TABLE IF NOT EXISTS {workflow_type_map} (
+CREATE TABLE {workflow_type_map} (
   type varchar(255) NOT NULL default '',
   wid int(10) unsigned NOT NULL default '0',
   KEY type (type,wid)
@@ -55,9 +57,9 @@ CREATE TABLE IF NOT EXISTS {workflow_type_map} (
 QUERY
       );
 
-      $query5 = db_query(
+      $result[] = db_query(
 <<<QUERY
-CREATE TABLE IF NOT EXISTS {workflow_node} (
+CREATE TABLE {workflow_node} (
   nid int(10) unsigned NOT NULL default '0',
   sid int(10) unsigned NOT NULL default '0',
   uid int(10) unsigned NOT NULL default '0',
@@ -65,11 +67,11 @@ CREATE TABLE IF NOT EXISTS {workflow_node} (
   KEY nid (nid,sid)
 ) /*!40100 DEFAULT CHARACTER SET utf8 */;
 QUERY
-       );
+      );
 
-      $query6 = db_query(
+      $result[] = db_query(
 <<<QUERY
-CREATE TABLE IF NOT EXISTS {workflow_actions} (
+CREATE TABLE {workflow_actions} (
   tid int(10) unsigned NOT NULL default '0',
   aid varchar(255) NOT NULL default '0',
   weight int(10) unsigned NOT NULL default '0',
@@ -78,27 +80,148 @@ CREATE TABLE IF NOT EXISTS {workflow_actions} (
 QUERY
       );
       
-      $query7 = db_query(
+      $result[] = db_query(
 <<<QUERY
-CREATE TABLE IF NOT EXISTS {workflow_node_history} (
+CREATE TABLE {workflow_node_history} (
   nid int(10) unsigned NOT NULL default '0',
   old_sid int(10) unsigned NOT NULL default '0',
   sid int(10) unsigned NOT NULL default '0',
   uid int(10) unsigned NOT NULL default '0',
-  stamp int(11) unsigned NOT NULL default '0',
+  stamp int(10) unsigned NOT NULL default '0',
   comment longtext,
   KEY nid (nid,sid)
 ) /*!40100 DEFAULT CHARACTER SET utf8 */;
 QUERY
       );
-            
-      if ($query1 && $query2 && $query3 && $query4 && $query5 && $query6 && $query7) {
-      	drupal_set_message(t('The workflow module has successfully added tables to the MySQL database.'));
-      }
-      else {
-      	drupal_set_message(t('Drupal was unable to install the database tables for the workflow module.'));
-      }
       break;
+
+    case 'pgsql':
+      $result[] = db_query(
+<<<QUERY
+CREATE TABLE {workflow_states} (
+  sid SERIAL,
+  wid integer NOT NULL default '0',
+  state varchar(255) NOT NULL default '',
+  weight smallint NOT NULL default '0',
+  sysid smallint NOT NULL default '0',
+  PRIMARY KEY  (sid)
+);
+QUERY
+      );
+      $result[] = db_query(
+<<<QUERY
+CREATE INDEX {workflow_states}_wid_idx ON {workflow_states}(wid);
+QUERY
+      );
+      $result[] = db_query(
+<<<QUERY
+CREATE INDEX {workflow_states}_sysid_idx ON {workflow_states}(sysid);
+QUERY
+      );
+
+      $result[] = db_query(
+<<<QUERY
+CREATE TABLE {workflow_transitions} (
+  tid SERIAL,
+  sid integer NOT NULL default '0',
+  target_sid integer NOT NULL default '0',
+  roles varchar(60) default NULL,
+  PRIMARY KEY  (tid)
+);
+QUERY
+      );
+      $result[] = db_query(
+<<<QUERY
+CREATE INDEX {workflow_transitions}_sid_idx ON {workflow_transitions}(sid);
+QUERY
+      );
+      $result[] = db_query(
+<<<QUERY
+CREATE INDEX {workflow_transitions}_target_sid_idx ON {workflow_transitions}(target_sid);
+QUERY
+      );
+
+      $result[] = db_query(
+<<<QUERY
+CREATE TABLE {workflows} (
+  wid SERIAL,
+  name varchar(255) NOT NULL default '',
+  tab_roles varchar(60) NOT NULL default '',
+  PRIMARY KEY  (wid)
+);
+QUERY
+      );
+
+      $result[] = db_query(
+<<<QUERY
+CREATE TABLE {workflow_type_map} (
+  type varchar(255) NOT NULL default '',
+  wid integer NOT NULL default '0'
+);
+QUERY
+      );
+      $result[] = db_query(
+<<<QUERY
+CREATE INDEX {workflow_type_map}_type_wid_idx ON {workflow_type_map}(type,wid);
+QUERY
+      );
+
+      $result[] = db_query(
+<<<QUERY
+CREATE TABLE {workflow_node} (
+  nid SERIAL,
+  sid integer NOT NULL default '0',
+  uid integer NOT NULL default '0',
+  PRIMARY KEY  (nid)
+);
+QUERY
+      );
+      $result[] = db_query(
+<<<QUERY
+CREATE INDEX {workflow_node}_nid_sid_idx ON {workflow_node}(nid,sid);
+QUERY
+      );
+
+      $result[] = db_query(
+<<<QUERY
+CREATE TABLE {workflow_actions} (
+  tid integer NOT NULL default '0',
+  aid varchar(255) NOT NULL default '0',
+  weight smallint NOT NULL default '0'
+);
+QUERY
+      );
+      $result[] = db_query(
+<<<QUERY
+CREATE INDEX {workflow_actions}_tid_idx ON {workflow_actions}(tid);
+QUERY
+      );
+      
+      $result[] = db_query(
+<<<QUERY
+CREATE TABLE {workflow_node_history} (
+  nid integer NOT NULL default '0',
+  old_sid integer NOT NULL default '0',
+  sid integer NOT NULL default '0',
+  uid integer NOT NULL default '0',
+  stamp integer NOT NULL default '0',
+  comment text
+);
+QUERY
+      );
+      $result[] = db_query(
+<<<QUERY
+CREATE INDEX {workflow_node_history}_nid_sid_idx ON {workflow_node_history}(nid,sid);
+QUERY
+      );
+      break;
+  }            
+
+  if (count($result) == count(array_filter($result))) {
+  	drupal_set_message(t('The workflow module has successfully added tables to the database.'));
+  }
+  else {
+  	drupal_set_message(t('Drupal was unable to install the database tables for the workflow module.'), 'error');
   }
 }
 
@@ -106,52 +229,113 @@ QUERY
 function workflow_update_1() {
   $ret = array();
   
-  // Create new workflow_node_history table
-  $ret[] = update_sql("
-CREATE TABLE {workflow_node_history} (
-  nid int( 10 ) unsigned NOT NULL default '0',
-  sid int( 10 ) unsigned NOT NULL default '0',
-  uid int( 10 ) unsigned NOT NULL default '0',
-  stamp int( 11 ) unsigned NOT NULL default '0',
-  KEY nid ( nid , sid )
-) /*!40100 DEFAULT CHARACTER SET utf8 */;
-");
+  switch ($GLOBALS['db_type']) {
+    case 'mysqli':
+    case 'mysql':
+      // Create new workflow_node_history table
+      $ret[] = update_sql("CREATE TABLE {workflow_node_history} (
+        nid int(10) unsigned NOT NULL default '0',
+        sid int(10) unsigned NOT NULL default '0',
+        uid int(10) unsigned NOT NULL default '0',
+        stamp int(10) unsigned NOT NULL default '0',
+        KEY nid (nid,sid)
+      ) /*!40100 DEFAULT CHARACTER SET utf8 */;");
 
-  // Copy data from the current workflow_node table
-  $ret[] = update_sql("
-INSERT INTO {workflow_node_history}
-SELECT *
-FROM {workflow_node}
-");
+      // Copy data from the current workflow_node table
+      $ret[] = update_sql("INSERT INTO {workflow_node_history} SELECT * FROM {workflow_node}");
 
-  // Delete older entries
-  $result = db_query("SELECT w1.* FROM {workflow_node} w1 LEFT JOIN {workflow_node} AS w2 ON w1.nid = w2.nid AND w1.start < w2.start WHERE w2.start is NULL");
-  while ($record = db_fetch_array($result)) {
-    db_query("DELETE FROM {workflow_node} WHERE nid = %d", $record['nid']);
-    db_query("INSERT INTO {workflow_node} (nid, sid, uid) VALUES (%d, %d, %d)", $record['nid'], $record['sid'], $record['uid']);
+      // Delete older entries
+      $result = db_query("SELECT w1.* FROM {workflow_node} w1 LEFT JOIN {workflow_node} AS w2 ON w1.nid = w2.nid AND w1.start < w2.start WHERE w2.start is NULL");
+      while ($record = db_fetch_array($result)) {
+        db_query("DELETE FROM {workflow_node} WHERE nid = %d", $record['nid']);
+        db_query("INSERT INTO {workflow_node} (nid, sid, uid) VALUES (%d, %d, %d)", $record['nid'], $record['sid'], $record['uid']);
+      }
+
+      $ret[] = update_sql("ALTER TABLE {workflow_node} DROP PRIMARY KEY");
+      $ret[] = update_sql("ALTER TABLE {workflow_node} DROP start");
+
+      // We can now use a unique primary key
+      $ret[] = update_sql("ALTER TABLE {workflow_node} ADD PRIMARY KEY (nid)");
+      break;
+
+    case 'pgsql':
+      // Create new workflow_node_history table
+      $ret[] = update_sql("CREATE TABLE {workflow_node_history} (
+        nid integer NOT NULL default '0',
+        sid integer NOT NULL default '0',
+        uid integer NOT NULL default '0',
+        stamp integer NOT NULL default '0'
+      );");
+      $ret[] = update_sql("CREATE INDEX {workflow_node_history}_nid_sid_idx ON {workflow_node_history}(nid,sid);");
+
+      // Copy data from the current workflow_node table
+      $ret[] = update_sql("INSERT INTO {workflow_node_history} SELECT * FROM {workflow_node}");
+
+      // Delete older entries
+      $result = db_query("SELECT w1.* FROM {workflow_node} w1 LEFT JOIN {workflow_node} AS w2 ON w1.nid = w2.nid AND w1.start < w2.start WHERE w2.start is NULL");
+      while ($record = db_fetch_array($result)) {
+        db_query("DELETE FROM {workflow_node} WHERE nid = %d", $record['nid']);
+        db_query("INSERT INTO {workflow_node} (nid, sid, uid) VALUES (%d, %d, %d)", $record['nid'], $record['sid'], $record['uid']);
+      }
+
+      $ret[] = update_sql("ALTER TABLE {workflow_node} DROP CONSTRAINT {workflow_node}_pkey");
+      $ret[] = update_sql("ALTER TABLE {workflow_node} DROP start");
+
+      // We can now use a unique primary key
+      $ret[] = update_sql("ALTER TABLE {workflow_node} ADD PRIMARY KEY (nid)");
+      break;
   }
 
-  $ret[] = update_sql("ALTER TABLE {workflow_node} DROP PRIMARY KEY");
-  $ret[] = update_sql("ALTER TABLE {workflow_node} DROP start");
-
-  // We can now use a unique primary key
-  $ret[] = update_sql("ALTER TABLE {workflow_node} ADD PRIMARY KEY (nid)");
-  
   return $ret;
 }
 
 // Make all tables UTF-8 compatible, workflow_node_history covered above.
 function workflow_update_2() {
-return _system_update_utf8(array('workflow_actions', 'workflow_node', 'workflow_states', 'workflow_transitions', 'workflow_type_map', 'workflows'));
+  return _system_update_utf8(array('workflow_actions', 'workflow_node', 'workflow_states', 'workflow_transitions', 'workflow_type_map', 'workflows'));
 }
 
 // Keep record of old states and comment history.
 function workflow_update_3() {
   $ret = array();
 
-  $ret[] = update_sql("ALTER TABLE {workflow_node_history} ADD old_sid int(10) unsigned AFTER nid");
-  $ret[] = update_sql("ALTER TABLE {workflow_node_history} ADD comment longtext");
-  $ret[] = update_sql("ALTER TABLE {workflows} ADD tab_roles varchar(60)");
+  switch ($GLOBALS['db_type']) {
+    case 'mysqli':
+    case 'mysql':
+      $ret[] = update_sql("ALTER TABLE {workflow_node_history} ADD old_sid int(10) unsigned NOT NULL AFTER nid");
+      $ret[] = update_sql("ALTER TABLE {workflow_node_history} ADD comment longtext");
+      $ret[] = update_sql("ALTER TABLE {workflows} ADD tab_roles varchar(60) NOT NULL");
+      break;
+
+    case 'pgsql':
+      db_add_column($ret, 'workflow_node_history', 'old_sid', 'integer', array('default' => 0, 'not null' => TRUE));
+      db_add_column($ret, 'workflow_node_history', 'comment', 'text', array('default' => '', 'not null' => TRUE));
+      db_add_column($ret, 'workflows', 'tab_roles', 'varchar(60)', array('default' => '', 'not null' => TRUE));
+      break;
+  }
 
   return $ret;
+}
+
+// Update sequence names to be cross-database compatible.
+function workflow_update_4() {
+  $ret = array();
+  
+  switch ($GLOBALS['db_type']) {
+    case 'mysqli':
+    case 'mysql':
+      db_query('LOCK TABLES {sequences} WRITE');
+      $ret[] = _workflow_fix_seq('workflows', '{workflows}_wid');
+      $ret[] = _workflow_fix_seq('workflow_state', '{workflow_states}_sid');
+      $ret[] = _workflow_fix_seq('workflow_transitions', '{workflow_transitions}_tid');
+      db_query('UNLOCK TABLES'); 
+      break;
+  }
+  
+  return $ret;
+}
+
+// Helper function to fix sequence table names.
+function _workflow_fix_seq($old_name, $new_name) {
+  $new_name = db_prefix_tables($new_name);
+  return update_sql("UPDATE {sequences} SET name = '%s' WHERE name = '%s'", $new_name, $old_name);
 }

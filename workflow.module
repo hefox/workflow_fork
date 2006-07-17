@@ -683,7 +683,7 @@ function workflow_edit_validate($form_id, $form_values) {
   $wid = $form_values['wid'];
   if (array_key_exists('wf_name', $form_values) && $form_values['wf_name'] != '') {
     // validate: make sure workflow name is not a duplicate
-    $dupe_name = db_result(db_query("SELECT COUNT(*) FROM {workflows} WHERE name='%s' && wid!=%d", $form_values['wf_name'], $wid));
+    $dupe_name = db_result(db_query("SELECT COUNT(*) FROM {workflows} WHERE name='%s' AND wid!=%d", $form_values['wf_name'], $wid));
     if ($dupe_name) {
       form_set_error('', t('Warning: Another workflow with this name already exists.'));
     }
@@ -800,7 +800,7 @@ function workflow_transition_add_role($from, $to, $role) {
     }
   }
   else {
-    db_query("INSERT INTO {workflow_transitions} (tid, sid, target_sid, roles) VALUES (%d, %d, %d, '%s')", db_next_id('workflow_transitions'), $from, $to, $role);
+    db_query("INSERT INTO {workflow_transitions} (tid, sid, target_sid, roles) VALUES (%d, %d, %d, '%s')", db_next_id('{workflow_transitions}_tid'), $from, $to, $role);
   }
 }
 
@@ -897,7 +897,7 @@ function workflow_overview() {
     $row[] = array(
       array('data' => $data->name),
       array('data' => l(t('add state'), "admin/workflow/state/$data->wid")),
-      array('data' => $states ? l(t('actions'), "admin/workflow/actions/$data->wid") : ''),
+      array('data' => $states && module_exist('actions') ? l(t('actions'), "admin/workflow/actions/$data->wid") : ''),
       array('data' => l(t('edit'), "admin/workflow/edit/$data->wid")),
       array('data' => l(t('delete'), "admin/workflow/delete/$data->wid")));
 
@@ -1216,10 +1216,10 @@ function workflow_get_all() {
  *
  */
 function workflow_create($name) {
-  $wid = db_next_id('workflows');
+  $wid = db_next_id('{workflows}_wid');
   db_query("INSERT INTO {workflows} (wid, name) VALUES (%d, '%s')", $wid, $name);
   db_query("INSERT INTO {workflow_states} (sid, wid, state, sysid) VALUES (%d, %d, '%s', %d)",
-    db_next_id('workflow_state'), $wid, t('(creation)'), WORKFLOW_CREATION);
+    db_next_id('{workflow_states}_sid'), $wid, t('(creation)'), WORKFLOW_CREATION);
 }
 
 /**
@@ -1287,7 +1287,7 @@ function workflow_get_states($wid) {
  */
 function workflow_state_create($wid, $name) {
   $wid = intval($wid);
-  $sid = db_next_id('workflow_state');
+  $sid = db_next_id('{workflow_states}_sid');
   db_query("INSERT INTO {workflow_states} (sid, wid, state, sysid) VALUES (%d, %d, '%s', %d)",
     $sid, $wid, $name, 0);
   return $sid;
@@ -1419,7 +1419,7 @@ function workflow_get_actions($tid) {
  *   Tid or FALSE if no such transition exists.
  */
 function workflow_get_transition_id($from, $to) {
-  return db_result(db_query("SELECT tid FROM {workflow_transitions} WHERE sid=%d && target_sid=%d", $from, $to));
+  return db_result(db_query("SELECT tid FROM {workflow_transitions} WHERE sid=%d AND target_sid=%d", $from, $to));
 }
 
 function workflow_actions_save($tid, $aid) {
