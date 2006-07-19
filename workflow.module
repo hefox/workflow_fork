@@ -174,25 +174,22 @@ function workflow_tab_submit($form_id, $form_values) {
 
 /**
  * Implementation of hook_nodeapi().
- * TODO: update this table for 4.7 as it is out of date.
- * Summary of callbacks we can see (Drupal 4.5.1):
+ * Summary of nodeapi ops we can see (Drupal 4.7):
  *
- * add             edit           submit (from edit) preview (from edit)
- *                 load           load               load
- * validate        validate       validate           validate
- * form pre        form pre       fields             view
- * form post       form post      update             form pre
- * form admin      form admin                        form post
- * form param      form param                        form admin
- *                                                   form param
+ *          preview  submit                 submit   preview
+ *          (from    (from                  (from    (from
+ * add      add)     add)     view  edit    edit)    edit)
+ * -------- -------- -------- ----- ------- -------- --------
+ *                            load  load    load     load
+ * prepare  prepare  prepare        prepare prepare  prepare
+ *          validate validate               validate validate
+ *          view              view                   view
+ *                   submit                 submit
+ *                   insert                 update
+ * 
  */
 function workflow_nodeapi(&$node, $op, $teaser = NULL, $page = NULL) {
   switch ($op) {
-
-  // need to introduce setting [x] add workflow field to node form
-  // made obsolete by formapi; now we use workflow_form_alter()
-  //case 'form':
-  //  return workflow_field_form($node);
 
   case 'load':
     $node->_workflow = workflow_node_current_state($node);
