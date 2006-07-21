@@ -391,8 +391,8 @@ function action_workflow_execute_transition($op, $edit = array(), &$node) {
       return array(
         'description' => t('Change workflow state of a node to next state'),
         'type' => t('Workflow'),
-        'batchable' => true,
-        'configurable' => false,
+        'batchable' => TRUE,
+        'configurable' => FALSE,
       );
 
     // return an HTML config form for the action
@@ -636,7 +636,7 @@ function workflow_edit($wid) {
   $form['submit'] = array('#type' => 'submit', '#value' => t('Save'));
   $form['wid'] = array('#type' => 'value', '#value' => $wid);
   $form['#theme'] = 'workflow_edit';
-  $form['transitions']['#tree'] = true;
+  $form['transitions']['#tree'] = TRUE;
 
   $output = drupal_get_form('workflow_edit', $form);
   $output .= workflow_permissions($wid);
@@ -858,7 +858,7 @@ function workflow_transition_grid_form($wid) {
           $form[$from][$to][$rid] = array(
             '#type' => 'checkbox',
             '#title' => $role_name,
-            '#default_value' => $tid ? workflow_transition_allowed($tid, $rid) : false);
+            '#default_value' => $tid ? workflow_transition_allowed($tid, $rid) : FALSE);
         }
       }
     }
@@ -880,9 +880,9 @@ function workflow_transition_allowed($tid, $role = null) {
   $allowed = explode(',', $allowed);
   if ($role) {
     if (!is_array($role)) { $role = array($role); }
-    return array_intersect($role, $allowed) ==  true;
+    return array_intersect($role, $allowed) ==  TRUE;
   } else {
-    return $allowed == true; // allowed for anybody?
+    return $allowed == TRUE; // allowed for anybody?
   }
 }
 
@@ -1083,10 +1083,10 @@ function workflow_actions_submit($form, $form_values) {
 function workflow_actions_form_build($wid, $form = NULL) {
   if (!isset($form)) {
     $form = array();
-    $render = false;
+    $render = FALSE;
   }
   else {
-    $render =true;
+    $render =TRUE;
   }
   $output = '';
   $states = array();
@@ -1190,12 +1190,12 @@ function workflow_get_name($wid) {
  * Get ID of a workflow for a node type.
  *
  * @return int
- *   The ID of the workflow or false if none.
+ *   The ID of the workflow or FALSE if none.
  *
  */
 function workflow_get_workflow_for_type($type) {
   $wid = db_result(db_query("SELECT wid FROM {workflow_type_map} WHERE type = '%s'", $type));
-  return $wid > 0 ? $wid : false;
+  return $wid > 0 ? $wid : FALSE;
 }
 
 /**
@@ -1531,7 +1531,7 @@ function workflow_views_tables() {
     "fields" => array(
       'state' => array(
         'name' => t('Workflow: state'),
-        'sortable' => true,
+        'sortable' => TRUE,
         'help' => t('Display the workflow state of the node.'),
       ),
     ),
@@ -1573,7 +1573,7 @@ function workflow_handler_filter_sid() {
 function workflow_handler_arg_sid($op, &$query, $argtype, $arg = '') {
   switch($op) {
     case 'summary':
-      $query->add_table('workflow_states', true);
+      $query->add_table('workflow_states', TRUE);
       $fieldinfo['field'] = "workflow_states.sid";
       $query->add_field('sid', 'workflow_states');
       $query->add_field('state', 'workflow_states');
@@ -1581,7 +1581,7 @@ function workflow_handler_arg_sid($op, &$query, $argtype, $arg = '') {
       return $fieldinfo;
       break;
     case 'filter':
-      $query->add_table('workflow_states', true);
+      $query->add_table('workflow_states', TRUE);
       if (is_numeric($arg)) {
         $query->add_where("workflow_states.sid = %d", $arg);
       }
