@@ -456,7 +456,7 @@ function workflow_node_current_state($node) {
 
 function _workflow_creation_state($wid) {
   return db_result(db_query("SELECT sid FROM {workflow_states} WHERE ".
-    "wid=%d && sysid=%d", $wid, WORKFLOW_CREATION));
+    "wid=%d AND sysid=%d", $wid, WORKFLOW_CREATION));
 }
 
 /**
