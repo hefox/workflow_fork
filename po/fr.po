@@ -4,218 +4,368 @@
 msgid ""
 msgstr ""
 "Project-Id-Version: Workflow-module\n"
-"POT-Creation-Date: 2005-12-05 11:31+0100\n"
-"PO-Revision-Date: 2005-12-07 21:46+0100\n"
-"Last-Translator: Chantal Lordya PIERREVIL-DESIR <lordya.d@laposte.net>\n"
-"Language-Team: LANGUAGE <Lordya.d@laposte.net>\n"
+"POT-Creation-Date: 2006-07-20 19:36-0400\n"
+"PO-Revision-Date: 2006-07-24 11:34-0400\n"
+"Last-Translator: \n"
+"Language-Team: French\n"
 "MIME-Version: 1.0\n"
-"Content-Type: text/plain; charset=utf-8\n"
+"Content-Type: text/plain; charset=UTF-8\n"
 "Content-Transfer-Encoding: 8bit\n"
 "Plural-Forms: nplurals=2; plural=(n > 1);\n"
-"X-Poedit-Language: French\n"
-"X-Poedit-Country: FRANCE\n"
+
+#: workflow.install:221
+msgid "The workflow module has successfully added tables to the database."
+msgstr "Le module workflow a ajouté les tables à la base de données."
+
+#: workflow.install:202
+msgid ""
+"Drupal was unable to install the database tables for the workflow module."
+msgstr ""
+"Drupal n'a pas pu ajouter les tables du module worflow dans la base de "
+"données MySQL."
+
+#: workflow.module:13
+msgid "Enables users to manage content using workflow states."
+msgstr ""
+"Permet aux utilisateurs de gérer du contenu utilisant les états de flux de "
+"travail."
+
+#: workflow.module:15
+msgid ""
+"You are currently viewing the possible transitions to and from workflow "
+"states. The state is shown in the left column; the state to be moved to is "
+"to the right. For each transition, check the box next to the role(s) that "
+"may initiate the transition. For example, if only the hulking_editor role "
+"may move a node from Review state to the Published state, check the box next "
+"to hulking_editor. The author role is built in and refers to the user who "
+"authored the node."
+msgstr ""
+"Vous voyez actuellement les transitions possibles depuis ou vers les etats "
+"de flux de travaux. L'état est montré dans la colone de gauche ; l'état "
+"futur est dans la colone de gauche. Pour chaque transition, selectionnez le"
+"(s) rôle(s) qui initie(nt) la transition. Par exemple, si il n'y a que le "
+"rôle redacteur_en_chef qui peut changer l'état d'un noeud du status Révision "
+"au status Publié, selectionner le rôle redacteur_en_chef. Le rôle auteur est "
+"un rôle qui, par défaut, fait référence à l'utilisateur qui a écrit le noeud."
 
 #: workflow.module:17
-msgid "Enables users to manage content using workflow states."
-msgstr "Permet aux utilisateurs de gérer du contenu utilisant les états de flux de travail."
+msgid ""
+"To get started, provide a name for your workflow. This name will be used as "
+"a label when the workflow status is shown during node editing."
+msgstr ""
+"Pour commencer, donnez un nom à votre flux de travaux. Ce nom sera utilisé "
+"comme une étiquette lorsque l'état du flux de travaux est montré lorsque le "
+"noeud est édité."
 
 #: workflow.module:19
-msgid "You are currently editing the possible transitions to and from a workflow state. The state is shown in the middle column. To the left, check all states that may come before this state. To the right, check all states that may come after this state. For example, you may have a workflow with three states, <em>draft</em>, <em>review</em>, and <em>published</em>. You probably would want the <em>draft</em> state to be able to move to the <em>review</em> state."
-msgstr "Vous éditez actuellement les transitions possibles vers et d'un état de flux de travail.  L'état est montré dans la colonne du milieu.  Vers la gauche, vérifiez tous les états qui peuvent arriver avant cet état.  Vers la droite, vérifiez tous les états qui peuvent arriver après cet état.  Par exemple, vous pouvez avoir un flux de travail avec trois états, < em>brouillon</em >, < em>révisé</em >, et < em>publié</em >.  Vous voudriez probablement que l'état de < em>brouillon</em > puisse passer à l'état de < em>révisé</em >."
+msgid ""
+"Enter the name for a state in your workflow. For example, if you were doing "
+"a meal workflow it may include states like <em>shop</em>, <em>prepare food</"
+"em>, <em>eat</em>, and <em>clean up</em>."
+msgstr ""
+"Écrivez le nom pour un état dans votre flux de travaux.  Par exemple, si "
+"vous faisiez un flux de travaux pour un repas, il peut comporter des états "
+"comme < em>magasin</em >, < em>préparer le repas</em >, < em>manger</em >, "
+"et <em>nettoyer</em>."
 
 #: workflow.module:21
-msgid "To get started, provide a name for your workflow. You might want to give it a name based on the states you will add to the workflow, like <em>Draft-Review-Publish</em> or a name based on its role in your organization, like <em>Sports Column Workflow</em>."
-msgstr "Pour commencer, fournissez un nom pour votre flux de travail. Vous pourriez vouloir lui donner un nom basé sur les états que vous ajouterez au flux de travail, comme <em>Brouillon-Révisé-Publié</em > ou un nom basé sur son rôle dans votre organisation, comme <em>Flux de colonne de Sports</em>."
+msgid ""
+"Use this page to set actions to happen when transitions occur. To %"
+"conf_actions, use the actions module."
+msgstr "Utilisez cette page pour mettre des actions qui devront se produire quand les transitions arrivent.  Pour %conf_actions, utilisez le module actions."
 
-#: workflow.module:23
-msgid "Enter the name for a state in your workflow. For example, if you were doing a meal workflow it may include states like <em>shop</em>, <em>prepare food</em>, <em>eat</em>, and <em>clean up</em>."
-msgstr "Écriver le nom pour un état dans votre flux de travail.  Par exemple, si vous faisiez un flux de travail pour un repas il peut comporter des états comme < em>magasin</em >, < em>préparer le repas</em >, < em>manger</em >, et <em>nettoyer</em>."
+#: workflow.module:29
+msgid "administer workflow"
+msgstr "administrer flux de travaux"
 
-#: workflow.module:25
-msgid "Each node type may have a separate workflow. Use this page to associate node types with the workflow you want them to use."
-msgstr "Chaque type de noeud peut avoir un flux de travail séparé.  Utisez cette page pour associer des types de noeud au flux de travail que vous voulez qu'ils utilisent."
-
-#: workflow.module:27
-msgid "Use this page to set actions to happen when transitions occur. To configure actions, use the actions module."
-msgstr "Utilisez cette page pour mettre des actions qui devront se produire quand les transitions arrivent.  Pour configurer des actions, utilisez le module actions."
-
-#: workflow.module:47;0
-msgid "workflow"
-msgstr "flux de travail"
-
-#: workflow.module:52
-msgid "list"
-msgstr "liste"
+#: workflow.module:46
+msgid "Edit workflow"
+msgstr "Éditer le flux de travaux"
 
 #: workflow.module:59
-msgid "add workflow"
-msgstr "Ajouter flux de travail"
+msgid "Add workflow"
+msgstr "Ajouter flux de travaux"
 
-#: workflow.module:65
-msgid "type mapping"
-msgstr "Mise en correspondance de type"
+#: workflow.module:66
+msgid "Add state"
+msgstr "Ajouter un état"
 
-#: workflow.module:133;568
-msgid "Workflow"
-msgstr "Flux de travail"
+#: workflow.module:72
+msgid "Delete workflow"
+msgstr "Supprimer le flux de travaux"
 
-#: workflow.module:150
-msgid "The workflow state is invalid for this node type. Check workflow settings."
-msgstr "L'état de flux de travail est invalide pour ce type de noeud. Vérifier les paramètres de flux de travail."
+#: workflow.module:123
+msgid "Current state: "
+msgstr "État courant: "
 
-#: workflow.module:261
-msgid "Workflow name updated to"
-msgstr "Nom du flux de travail mise à jour à"
+#: workflow.module:133
+msgid "Change %s state"
+msgstr "Changer l'état de %s"
 
-#: workflow.module:288
-msgid "Allowable transitions for"
-msgstr "Autorise des transitions pour"
+#: workflow.module:159
+msgid "By"
+msgstr "Par"
 
-#: workflow.module:288
-msgid "were saved."
-msgstr "a été sauvegardé."
+#: workflow.module:159
+msgid "New State"
+msgstr "Nouvel état"
 
-#: workflow.module:310
-msgid "The workflow"
-msgstr "Le flux de travail"
+#: workflow.module:159
+msgid "Old State"
+msgstr "Ancien état"
 
-#: workflow.module:310
-msgid "was deleted."
-msgstr "a été supprimé."
+#: workflow.module:159
+msgid "Workflow History"
+msgstr "Historique du flux de travaux"
 
-#: workflow.module:327
-msgid "The workflow mapping was saved."
-msgstr "La mise en relation du flux de travail a été sauvegardée."
+#: workflow.module:253
+msgid "A comment to put in the workflow log."
+msgstr "Un commentaire à intégrer dans le journal du flux de travaux"
 
-#: workflow.module:345
-msgid "The action"
-msgstr "L'opération"
+#: workflow.module:320
+msgid "Attempt to go to nonexistent transition (from %old to %new)"
+msgstr ""
+"Tentative de déplacer vers une transition qui n'existe pas (de %old à %new)"
 
-#: workflow.module:345
-msgid "has been removed."
-msgstr "a été enlevé."
+#: workflow.module:324
+msgid "User %user not allowed to go from state %old to %new"
+msgstr "L'utilisateur %user n'est pas autorisé à passer l'état de %old à %new"
 
-#: workflow.module:373
-msgid "Name"
-msgstr "Nom"
+#: workflow.module:343
+msgid "State of %type %node_title set to %state_name"
+msgstr "État du %type %node_title réglé à %state_name"
 
-#: workflow.module:380
+#: workflow.module:362
+msgid "Unable to get current workflow state of node %nid."
+msgstr "Impossible d'obtenir l'état du flux de travaux du noeud %nid"
+
+#: workflow.module:385
+msgid "Changing workflow state of node id %id to %state"
+msgstr "Change l'état du flux de travaux du noeud %id à %state"
+
+#: workflow.module:387
+msgid "Changed workflow state of node id %id to %state"
+msgstr "État du flux de travaux du noeud %id à %state changé."
+
+#: workflow.module:392
+msgid "Change workflow state of a node to next state"
+msgstr "Change l'état du flux de travaux du noeud"
+
+#: workflow.module:505
+msgid "Add Workflow"
+msgstr "Ajouter un flux de travaux"
+
+#: workflow.module:512
+msgid "Please provide a nonblank name for the new workflow."
+msgstr "Veuillez donner un nom 'non-vide' pour le nouveau flux de travaux"
+
+#: workflow.module:520
+msgid ""
+"The workflow %wf was created. You should now add states to your workflow."
+msgstr ""
+"Le flux de travaux %wf a été créé. Maintenant vous devriez ajouter des états "
+"à votre flux de travaux."
+
+#: workflow.module:542
+msgid ""
+"Are you sure you want to delete %title? All nodes that have a workflow state "
+"associated with this workflow will have those workflow states removed."
+msgstr "Êtes vous sûr de vouloir supprimer %title ? Tous les états associés à ce flux seront effacés des nodes utilisant ce flux."
+
+#: workflow.module:551
+msgid "The workflow %wf was deleted."
+msgstr "Le flux de travail %wf a été supprimé."
+
+#: workflow.module:590
+msgid "%role may do these transitions:"
+msgstr "%role peut faire ces transitions"
+
+#: workflow.module:623
+msgid "Workflow tab permissions"
+msgstr "Onglet des permissions des flux de travaux"
+
+#: workflow.module:632
+msgid ""
+"Select any roles that should have access to the workflow tab on nodes that "
+"have a workflow."
+msgstr ""
+"Selectionnez les rôles qui auront accès à l'onglet flux de travaux dans les "
+"noeuds qui en ont."
+
+#: workflow.module:652
+msgid "From / To "
+msgstr "De / À"
+
+#: workflow.module:695
+msgid "Warning: Another workflow with this name already exists."
+msgstr "Attention : un autre flux de travaux a déjà ce nom."
+
+#: workflow.module:709
+msgid ""
+"Warning: Please give the author permission to go from (creation) to at least "
+"one state."
+msgstr ""
+"Attention : veuillez au moins donner la permission à l'auteur d'aller de la "
+"création à un autre état."
+
+#: workflow.module:713
+msgid "Please provide a name for the workflow."
+msgstr "Veuillez donner un nom au flux de travaux"
+
+#: workflow.module:720
+msgid "Workflow updated."
+msgstr "Flux de travaux mis à jour."
+
+#: workflow.module:737
+msgid "State Name"
+msgstr "Nom de l'état"
+
+#: workflow.module:749
+msgid "Please provide a nonblank name for the new state."
+msgstr "Veuillez donner un nom 'non-vide' au nouvel état."
+
+#: workflow.module:755
+msgid "The workflow state was created."
+msgstr "L'état de flux de travaux a été créé."
+
+#: workflow.module:844
+msgid "There are no states defined for this workflow."
+msgstr "Il n'y a pas d'état défini pour ce flux de travaux."
+
+#: workflow.module:906
 msgid "add state"
 msgstr "ajouter état"
 
-#: workflow.module:381
+#: workflow.module:907
 msgid "actions"
-msgstr "activités"
+msgstr "actions"
 
-#: workflow.module:382
-msgid "edit"
-msgstr "Editer"
+#: workflow.module:925
+msgid "No workflows have been added. Would you like to %add_a_workflow?"
+msgstr "Pas de flux de travaux ajouté. Voulez-vous %add_a_workflow ?"
 
-#: workflow.module:383;395
-msgid "delete"
-msgstr "supprimer"
-
-#: workflow.module:392
-msgid "transitions"
-msgstr "transitions"
-
-#: workflow.module:403
-msgid "No workflows have been added. Would you like to"
-msgstr "Pas de flux de travail ajouté. Voudriez-vous le faire "
-
-#: workflow.module:403
+#: workflow.module:925
 msgid "add a workflow"
-msgstr "ajouter un flux de travail"
+msgstr "ajouter un flux de travaux"
 
-#: workflow.module:424
-msgid "Add Workflow"
-msgstr "Ajouter flux de travail"
+#: workflow.module:970
+msgid "Are you sure you want to delete %title (and all its transitions)?"
+msgstr ""
+"Êtes vous certain de vouloir supprimer %title (et toutes ses transitions) ?"
 
-#: workflow.module:428
-msgid "Save"
-msgstr "Sauvegarder"
+#: workflow.module:979
+msgid "The workflow state %title was deleted."
+msgstr "L'état de flux de travaux %title a été supprimé."
 
-#: workflow.module:446;504
-msgid "Confirm deletion"
-msgstr "Confirmer la suppression"
+#: workflow.module:1011
+msgid "Save Workflow Mapping"
+msgstr "Sauvegarder la mise en relation du flux de travaux"
 
-#: workflow.module:446
-msgid "Really delete workflow"
-msgstr "Supprimer réellement le flux de travail"
+#: workflow.module:1017
+msgid "Each node type may have a separate workflow:"
+msgstr "Chaque type de noeud devrait avoir un flux de travaux séparé :"
 
-#: workflow.module:446
-msgid "and all the states it contains"
-msgstr "et tous les états qu'il contient"
-
-#: workflow.module:446
-msgid "All nodes that have a workflow state associated with this workflow will have those workflow states removed."
-msgstr "Tous les noeuds qui ont un état de flux de travail lié à ce flux de travail auront ces états de flux de travail enlevés."
-
-#: workflow.module:448;506
-msgid "Delete"
-msgstr "Supprimer"
-
-#: workflow.module:466;800
-msgid "(creation)"
-msgstr "(création)"
-
-#: workflow.module:504
-msgid "Really delete workflow state"
-msgstr "Supprimer réellement l'état de flux de travail"
-
-#: workflow.module:504
-msgid "(and all its transitions)"
-msgstr "(et toutes ses transitions)"
-
-#: workflow.module:541
-msgid "States that may move to state"
-msgstr "Les états peuvent-être déplacés vers cet état"
-
-#: workflow.module:545
-msgid "States that state"
-msgstr "Déclarer cet état"
-
-#: workflow.module:545
-msgid "may move to"
-msgstr "doit se déplacer vers"
-
-#: workflow.module:558
-msgid "Save Transitions"
-msgstr "Sauvegarder les transitions"
-
-#: workflow.module:565;604;638
-msgid "None"
-msgstr "Aucun"
-
-#: workflow.module:567
+#: workflow.module:1019
 msgid "Node Type"
 msgstr "Type de noeud"
 
-#: workflow.module:587
-msgid "Save Workflow Mapping"
-msgstr "Sauvegarder la mise en relation du flux de travail"
+#: workflow.module:1037
+msgid "The workflow mapping was saved."
+msgstr "La mise en relation du flux de travaux a été sauvegardée."
 
-#: workflow.module:609
+#: workflow.module:1047
+msgid "Are you sure you want to delete the action %title?"
+msgstr "Êtes vous certain de vouloir supprimer l'action %title ?"
+
+#: workflow.module:1047
+msgid "You can add it again later if you wish."
+msgstr "Vous pouvez le rajouter à nouveau plus tard."
+
+#: workflow.module:1056
+msgid "Action %action deleted"
+msgstr "Action %action supprimée"
+
+#: workflow.module:1057
+msgid "Action %action deleted."
+msgstr "Action %action supprimée"
+
+#: workflow.module:1064
+msgid ""
+"Before you can assign actions you must install and enable the actions module."
+msgstr ""
+"Avant d,assigner des actions, vous devez installer et activer le module "
+"actions."
+
+#: workflow.module:1105
 msgid "Transition"
 msgstr "Transition"
 
-#: workflow.module:610
+#: workflow.module:1106
 msgid "Actions"
-msgstr "activités"
+msgstr "Actions"
 
-#: workflow.module:630
+#: workflow.module:1126
 msgid "remove"
 msgstr "supprimer"
 
-#: workflow.module:639
+#: workflow.module:1150
 msgid "Add"
 msgstr "Ajouter"
 
-#: workflow.module:744
+#: workflow.module:1166
+msgid "You must first %link before you can assign actions."
+msgstr "Vous devez d'abord %link avant de pouvoir assigner des actions"
+
+#: workflow.module:1166
+msgid "set up transitions"
+msgstr "configurer les transitions"
+
+#: workflow.module:1262
 msgid "Deleted workflow"
-msgstr "Flux de travail supprimé."
+msgstr "Flux de travaux supprimé."
 
-#: workflow.module:35
-msgid "administer workflow"
-msgstr "administrer flux de travail"
+#: workflow.module:1506
+msgid "Include only nodes in the selected workflow states."
+msgstr "Inclure seulement les noeuds des états sélectionnés."
 
+#: workflow.module:1528
+msgid "Order nodes by workflow state."
+msgstr "Ordonner les noeuds par état du flux de travaux"
+
+#: workflow.module:1535
+msgid "Display the workflow state of the node."
+msgstr "Montre l'état du flux de travaux du noeud"
+
+#: workflow.module:1552
+msgid "The work flow argument allows users to filter a view by workflow state."
+msgstr ""
+"L'argument du flux de travaux permet aux utilisateurs de filtrer le vue par "
+"état de flux de travaux"
+
+#: workflow.module:120;126;269;271;655;660;702;849;948;1229
+msgid "(creation)"
+msgstr "(création)"
+
+#: workflow.module:1503;1526;1533;1550
+msgid "Workflow: state"
+msgstr "Flux de travaux : état"
+
+#: workflow.module:41;102;116;320;324;343;362;1056;1262;0
+msgid "workflow"
+msgstr "flux de travaux"
+
+#: workflow.module:500;617
+msgid "Workflow Name"
+msgstr "Nom du flux de travaux"
+
+#: workflow.module:595;989;1100;1144
+msgid "None"
+msgstr "Aucun"
+
+#: workflow.module:636;741
+msgid "Save"
+msgstr "Sauvegarder"
+
+#: workflow.module:78;84
+msgid "Workflow actions"
+msgstr "Actions des flux de travaux"
