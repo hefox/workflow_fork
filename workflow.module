@@ -120,7 +120,7 @@ function workflow_tab_page($nid) {
   $states = workflow_get_states($wid) + array(t('(creation)'));
   $current = workflow_node_current_state($node);
 
-  $output = "<p>Current state: " . check_plain($states[$current]) . "</p>\n";
+  $output = '<p>'. t('Current state: %state', array('%state' => check_plain($states[$current]))) . "</p>\n";
 
   $choices = workflow_field_choices($node);
   $min = $states[$current] == t('(creation)') ? 1 : 2;
@@ -340,8 +340,8 @@ function workflow_execute_transition($node, $sid, $comment = NULL) {
   $state_name = db_result(db_query("SELECT state FROM {workflow_states} WHERE sid = %d", $sid));
   $type = check_plain(node_get_name($node->type)); //module_invoke($node->type, 'node_name', $node);
   $state_name = check_plain($state_name);
-  watchdog('workflow', "State of $type <em>$node->title</em> set to $state_name", WATCHDOG_NOTICE, l('view', $node->nid));
-
+  watchdog('workflow', t('State of %type %node_title set to %state_name', array('%type' => $type, '%node_title' => theme('placeholder', $node->title), '%state_name' => $state_name)), WATCHDOG_NOTICE, l('view', $node->nid));
+ 
   // Notify modules that transition has occurred. Actions should take place
   // in response to this callback, not the previous one.
   module_invoke_all('workflow', 'transition post', $old_sid, $sid, $node);
@@ -652,12 +652,12 @@ function theme_workflow_edit($form) {
     $header = array(array('data' => t('From / To ') . '&nbsp;' . WORKFLOW_ARROW));
     $rows = array();
     foreach ($states as $state_id => $name) {
-      if ($name != '(creation)') { // don't allow transition TO (creation)
+      if ($name != t('(creation)')) { // don't allow transition TO (creation)
         $header[] = array('data' => t($name));
       }
       $row = array(array('data' => $name));
       foreach ($states as $nested_state_id => $nested_name) {
-        if ($nested_name == '(creation)') {
+        if ($nested_name == t('(creation)')) {
           continue; // don't allow transition TO (creation)
         }
         if ($nested_state_id != $state_id) {
@@ -699,7 +699,7 @@ function workflow_edit_validate($form_id, $form_values) {
     $states = workflow_get_states($wid);
     $author_creates = 0;
     foreach ($form_values['transitions'] as $id => $trans) {
-      if ($states[$id] == '(creation)') {
+      if ($states[$id] == t('(creation)')) {
         foreach ($trans as $t) {
           if ($t['author'] == 1) { $author_creates++; }
         }
