@@ -337,5 +337,5 @@ function workflow_update_4() {
 // Helper function to fix sequence table names.
 function _workflow_fix_seq($old_name, $new_name) {
   $new_name = db_prefix_tables($new_name);
-  return update_sql("UPDATE {sequences} SET name = '%s' WHERE name = '%s'", $new_name, $old_name);
+  return update_sql("UPDATE {sequences} SET name = '" . $new_name . "' WHERE name = '" . $old_name . "'");
 }
