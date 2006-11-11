@@ -1227,6 +1227,7 @@ function workflow_create($name) {
   db_query("INSERT INTO {workflows} (wid, name) VALUES (%d, '%s')", $wid, $name);
   db_query("INSERT INTO {workflow_states} (sid, wid, state, sysid) VALUES (%d, %d, '%s', %d)",
     db_next_id('{workflow_states}_sid'), $wid, t('(creation)'), WORKFLOW_CREATION);
+  return $wid;
 }
 
 /**
