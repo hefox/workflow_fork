@@ -1055,7 +1055,7 @@ function workflow_actions_remove_confirm_submit($form_id, $form_values) {
     workflow_actions_remove($form_values['tid'], $aid);
     watchdog('workflow', t('Action %action deleted',  array('%action' => check_plain($actions[$aid]))));
     drupal_set_message(t('Action %action deleted.', array('%action' => theme('placeholder', $actions[$aid]))));
-    return('/admin/workflow/actions/'. $form_values['wid']);
+    return('admin/workflow/actions/'. $form_values['wid']);
   }
 }
 
