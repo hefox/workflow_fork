@@ -63,6 +63,7 @@ CREATE TABLE {workflow_node} (
   nid int(10) unsigned NOT NULL default '0',
   sid int(10) unsigned NOT NULL default '0',
   uid int(10) unsigned NOT NULL default '0',
+  stamp int(11) unsigned NOT NULL default '0',
   PRIMARY KEY  (nid),
   KEY nid (nid,sid)
 ) /*!40100 DEFAULT CHARACTER SET utf8 */;
@@ -90,6 +91,19 @@ CREATE TABLE {workflow_node_history} (
   stamp int(10) unsigned NOT NULL default '0',
   comment longtext,
   KEY nid (nid,sid)
+) /*!40100 DEFAULT CHARACTER SET utf8 */;
+QUERY
+      );
+      
+      $result[] = db_query(
+<<<QUERY
+CREATE TABLE {workflow_scheduled_transition} (
+  nid int(10) unsigned NOT NULL default '0',
+  old_sid int(10) unsigned NOT NULL default '0',
+  sid int(10) unsigned NOT NULL default '0',
+  scheduled int(10) unsigned NOT NULL default '0',
+  comment longtext,
+  KEY nid (nid)
 ) /*!40100 DEFAULT CHARACTER SET utf8 */;
 QUERY
       );
@@ -214,6 +228,23 @@ QUERY
 CREATE INDEX {workflow_node_history}_nid_sid_idx ON {workflow_node_history}(nid,sid);
 QUERY
       );
+      
+      $result[] = db_query(
+<<<QUERY
+CREATE TABLE {workflow_scheduled_transition} (
+  nid integer NOT NULL default '0',
+  old_sid integer NOT NULL default '0',
+  sid integer NOT NULL default '0',
+  scheduled integer NOT NULL default '0',
+  comment text
+);
+QUERY
+      );
+      $result[] = db_query(
+<<<QUERY
+CREATE INDEX {workflow_scheduled_transition}_nid_idx ON {workflow_scheduled_transition}(nid);
+QUERY
+      );
       break;
   }            
 
@@ -334,8 +365,63 @@ function workflow_update_4() {
   return $ret;
 }
 
+// Add stamp column in workflow_node to ease JOIN with history table. Needed for Views
+function workflow_update_5() {
+   $ret[] = update_sql("ALTER TABLE {workflow_node} ADD stamp int(10) unsigned AFTER uid");  
+   $sql = "SELECT MAX(stamp) AS stamp, nid FROM {workflow_node_history} GROUP BY nid";
+   $result = db_query($sql);
+   while ($row = db_fetch_object($result)) {
+     $ret[] = update_sql("UPDATE {workflow_node} SET stamp = $row->stamp WHERE nid = $row->nid");
+   }
+   return $ret;
+}
+
 // Helper function to fix sequence table names.
 function _workflow_fix_seq($old_name, $new_name) {
   $new_name = db_prefix_tables($new_name);
   return update_sql("UPDATE {sequences} SET name = '" . $new_name . "' WHERE name = '" . $old_name . "'");
+}
+
+// Add scheduling tables
+function workflow_update_6() {
+  $ret = array();
+  
+  switch ($GLOBALS['db_type']) {
+    case 'mysqli':
+    case 'mysql':
+        $ret[] = update_sql(
+<<<QUERY
+CREATE TABLE {workflow_scheduled_transition} (
+  nid int(10) unsigned NOT NULL default '0',
+  old_sid int(10) unsigned NOT NULL default '0',
+  sid int(10) unsigned NOT NULL default '0',
+  scheduled int(10) unsigned NOT NULL default '0',
+  comment longtext,
+  KEY nid (nid)
+) /*!40100 DEFAULT CHARACTER SET utf8 */;
+QUERY
+      );
+      break;
+    case 'pgsql':
+      $ret[] = update_sql(
+<<<QUERY
+CREATE TABLE {workflow_scheduled_transition} (
+  nid integer NOT NULL default '0',
+  old_sid integer NOT NULL default '0',
+  sid integer NOT NULL default '0',
+  scheduled integer NOT NULL default '0',
+  comment text
+);
+QUERY
+      );
+      $ret[] = update_sql(
+<<<QUERY
+CREATE INDEX {workflow_scheduled_transition}_nid_idx ON {workflow_scheduled_transition}(nid);
+QUERY
+      );
+
+     break;
+  }
+  
+  return $ret;
 }

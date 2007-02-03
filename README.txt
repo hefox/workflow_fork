@@ -3,7 +3,8 @@
 ********************************************************************
 Name: Workflow Module
 Author: John VanDyk <jvandyk at iastate dot edu>
-Drupal: 4.7
+Maintainer: Mark Fredrickson <mark.m.fredrickson at gmail dot com>
+Drupal: 5
 ********************************************************************
 DESCRIPTION:
 
@@ -29,7 +30,7 @@ INSTALLATION:
 
 2. Enable the workflow module by navigating to:
 
-     administer > modules
+     administer > build > modules
 
    Enabling the workflow module will create the necessary database 
    tables for you.
@@ -38,16 +39,19 @@ INSTALLATION:
    to configure workflows (usually a bad idea), they must be given
    the "administer workflow" access permission:
    
-     administer > users > configure > permissions
+     administer > user > access
 
    When the module is enabled and the user has the "administer
    workflow" permission, a "workflow" menu should appear in the 
    menu system.
 
+	 You may also allow only some users to schedule transitions. Select
+	 the "schedule workflow transitions" permission to allow transitions.
+
 ********************************************************************
 GETTING STARTED:
 
-Let's create a new workflow. Click on administer -> workflow and click
+Let's create a new workflow. Click on administer -> build -> workflow and click
 on the "add workflow" tab.
 
 We'll start simple. Call our workflow "Draft-Done" and click Add Workflow.
@@ -80,7 +84,7 @@ would turn in drafts and editors would say when they are "done".
 Be sure to click the Save button to save your settings.
 
 Now let's tell Drupal which node types should use this workflow. Click
-on admin -> workflow. Let's assign the Draft-Done workflow
+on admin -> build -> workflow. Let's assign the Draft-Done workflow
 to the story node type and click Save Workflow Mapping.
 
 Now we could add an action (previously configured using the actions
