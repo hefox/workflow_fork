@@ -2,9 +2,10 @@
                      D R U P A L    M O D U L E
 ********************************************************************
 Name: Workflow Module
-Author: John VanDyk <jvandyk at iastate dot edu>
-Maintainer: Mark Fredrickson <mark.m.fredrickson at gmail dot com>
-Drupal: 5
+Author: John VanDyk
+Maintainers: Mark Fredrickson <mark.m.fredrickson at gmail dot com>
+             John VanDyk drupal.org/user/2375
+Drupal: 6
 ********************************************************************
 DESCRIPTION:
 
@@ -15,8 +16,8 @@ Workflows are made up of workflow states.
 
 Moving from one state to another is called a transition.
 
-Actions are associated with transitions (actions.module must be
-installed for this).
+Actions are associated with transitions (actions.module was used
+for this in Drupal 5; core actions support for Drupal 6 is a todo).
 
 Alex Reisner introduced role-based permissions for workflow states
 and generally enhanced this module.
@@ -24,13 +25,13 @@ and generally enhanced this module.
 ********************************************************************
 INSTALLATION:
 
-1. Place the entire workflow directory into your Drupal modules/
-   directory.
+1. Place the entire workflow directory into your Drupal
+   sites/all/modules directory.
 
 
 2. Enable the workflow module by navigating to:
 
-     administer > build > modules
+     Administer > Site building > Modules
 
    Enabling the workflow module will create the necessary database 
    tables for you.
@@ -39,20 +40,20 @@ INSTALLATION:
    to configure workflows (usually a bad idea), they must be given
    the "administer workflow" access permission:
    
-     administer > user > access
+     Administer > User management > Permissions
 
    When the module is enabled and the user has the "administer
-   workflow" permission, a "workflow" menu should appear in the 
-   menu system.
+   workflow" permission, a "Workflow" menu should appear in the 
+   menu system under Administer -> Site building.
 
-	 You may also allow only some users to schedule transitions. Select
-	 the "schedule workflow transitions" permission to allow transitions.
+   You may also allow only some users to schedule transitions. Select
+   the "schedule workflow transitions" permission to allow transitions.
 
 ********************************************************************
 GETTING STARTED:
 
-Let's create a new workflow. Click on administer -> build -> workflow and click
-on the "add workflow" tab.
+Let's create a new workflow. Click on Administer -> Site building -> 
+Workflow and click on the "Add workflow" tab.
 
 We'll start simple. Call our workflow "Draft-Done" and click Add Workflow.
 
