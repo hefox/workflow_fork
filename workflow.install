@@ -12,92 +12,88 @@ function workflow_install() {
  * Implementation of hook_uninstall().
  */
 function workflow_uninstall() {
+  variable_del('workflow_states_per_page');
+  // Delete type-workflow mapping variables.
+  foreach (node_get_types() as $type => $name) {
+    variable_del('workflow_'. $type);
+  }
   drupal_uninstall_schema('workflow');
 }
 
+/**
+ * Implementation of hook_schema().
+ */
 function workflow_schema() {
   $schema['workflows'] = array(
-    'fields' => array(
-      'wid' => array('type' => 'serial'),
-      'name' => array('type' => 'varchar', 'length' => '255', 'not null' => TRUE, 'default' => ''),
+    'fields'      => array(
+      'wid'       => array('type' => 'serial'),
+      'name'      => array('type' => 'varchar', 'length' => '255', 'not null' => TRUE, 'default' => ''),
       'tab_roles' => array('type' => 'varchar', 'length' => '60', 'not null' => TRUE, 'default' => '')),
     'primary key' => array('wid'),
   );
-
   $schema['workflow_type_map'] = array(
     'fields' => array(
       'type' => array('type' => 'varchar', 'length' => '255', 'not null' => TRUE, 'default' => ''),
-      'wid' => array('type' => 'int', 'unsigned' => TRUE, 'not null' => TRUE, 'default' => 0, 'disp-width' => '10')),
+      'wid'  => array('type' => 'int', 'unsigned' => TRUE, 'not null' => TRUE, 'default' => 0, 'disp-width' => '10')),
     'indexes' => array(
       'type' => array('type', 'wid')),
   );
-
   $schema['workflow_transitions'] = array(
     'fields' => array(
-      'tid' => array('type' => 'serial'),
-      'sid' => array('type' => 'int', 'unsigned' => TRUE, 'not null' => TRUE, 'default' => 0, 'disp-width' => '10'),
+      'tid'        => array('type' => 'serial'),
+      'sid'        => array('type' => 'int', 'unsigned' => TRUE, 'not null' => TRUE, 'default' => 0, 'disp-width' => '10'),
       'target_sid' => array('type' => 'int', 'unsigned' => TRUE, 'not null' => TRUE, 'default' => 0, 'disp-width' => '10'),
-      'roles' => array('type' => 'varchar', 'length' => '60', 'not null' => FALSE)),
+      'roles'      => array('type' => 'varchar', 'length' => '255', 'not null' => FALSE)),
     'primary key' => array('tid'),
     'indexes' => array(
       'sid' => array('sid'),
       'target_sid' => array('target_sid')),
   );
-
   $schema['workflow_states'] = array(
     'fields' => array(
-      'sid' => array('type' => 'serial'),
-      'wid' => array('type' => 'int', 'unsigned' => TRUE, 'not null' => TRUE, 'default' => 0, 'disp-width' => '10'),
-      'state' => array('type' => 'varchar', 'length' => '255', 'not null' => TRUE, 'default' => ''),
+      'sid'    => array('type' => 'serial'),
+      'wid'    => array('type' => 'int', 'unsigned' => TRUE, 'not null' => TRUE, 'default' => 0, 'disp-width' => '10'),
+      'state'  => array('type' => 'varchar', 'length' => '255', 'not null' => TRUE, 'default' => ''),
       'weight' => array('type' => 'int', 'size' => 'tiny', 'not null' => TRUE, 'default' => 0, 'disp-width' => '4'),
-      'sysid' => array('type' => 'int', 'size' => 'tiny', 'not null' => TRUE, 'default' => 0, 'disp-width' => '4')),
+      'sysid'  => array('type' => 'int', 'size' => 'tiny', 'not null' => TRUE, 'default' => 0, 'disp-width' => '4'),
+      'status' => array('type' => 'int', 'size' => 'tiny', 'not null' => TRUE, 'default' => 1, 'disp-width' => '4')),
     'primary key' => array('sid'),
     'indexes' => array(
       'sysid' => array('sysid'),
       'wid' => array('wid')),
   );
-
   $schema['workflow_scheduled_transition'] = array(
     'fields' => array(
-      'nid' => array('type' => 'int', 'unsigned' => TRUE, 'not null' => TRUE, 'default' => 0, 'disp-width' => '10'),
-      'old_sid' => array('type' => 'int', 'unsigned' => TRUE, 'not null' => TRUE, 'default' => 0, 'disp-width' => '10'),
-      'sid' => array('type' => 'int', 'unsigned' => TRUE, 'not null' => TRUE, 'default' => 0, 'disp-width' => '10'),
+      'nid'       => array('type' => 'int', 'unsigned' => TRUE, 'not null' => TRUE, 'default' => 0, 'disp-width' => '10'),
+      'old_sid'   => array('type' => 'int', 'unsigned' => TRUE, 'not null' => TRUE, 'default' => 0, 'disp-width' => '10'),
+      'sid'       => array('type' => 'int', 'unsigned' => TRUE, 'not null' => TRUE, 'default' => 0, 'disp-width' => '10'),
       'scheduled' => array('type' => 'int', 'unsigned' => TRUE, 'not null' => TRUE, 'default' => 0, 'disp-width' => '10'),
-      'comment' => array('type' => 'text', 'size' => 'big', 'not null' => FALSE)),
+      'comment'   => array('type' => 'text', 'size' => 'big', 'not null' => FALSE)),
     'indexes' => array(
       'nid' => array('nid')),
   );
-
   $schema['workflow_node_history'] = array(
     'fields' => array(
-      'nid' => array('type' => 'int', 'unsigned' => TRUE, 'not null' => TRUE, 'default' => 0, 'disp-width' => '10'),
+      'hid'     => array('type' => 'serial'),
+      'nid'     => array('type' => 'int', 'unsigned' => TRUE, 'not null' => TRUE, 'default' => 0, 'disp-width' => '10'),
       'old_sid' => array('type' => 'int', 'unsigned' => TRUE, 'not null' => TRUE, 'default' => 0, 'disp-width' => '10'),
-      'sid' => array('type' => 'int', 'unsigned' => TRUE, 'not null' => TRUE, 'default' => 0, 'disp-width' => '10'),
-      'uid' => array('type' => 'int', 'unsigned' => TRUE, 'not null' => TRUE, 'default' => 0, 'disp-width' => '10'),
-      'stamp' => array('type' => 'int', 'unsigned' => TRUE, 'not null' => TRUE, 'default' => 0, 'disp-width' => '10'),
+      'sid'     => array('type' => 'int', 'unsigned' => TRUE, 'not null' => TRUE, 'default' => 0, 'disp-width' => '10'),
+      'uid'     => array('type' => 'int', 'unsigned' => TRUE, 'not null' => TRUE, 'default' => 0, 'disp-width' => '10'),
+      'stamp'   => array('type' => 'int', 'unsigned' => TRUE, 'not null' => TRUE, 'default' => 0, 'disp-width' => '10'),
       'comment' => array('type' => 'text', 'size' => 'big', 'not null' => FALSE)),
+    'primary key' => array('hid'),
     'indexes' => array(
       'nid' => array('nid', 'sid')),
   );
-
   $schema['workflow_node'] = array(
     'fields' => array(
-      'nid' => array('type' => 'int', 'unsigned' => TRUE, 'not null' => TRUE, 'default' => 0, 'disp-width' => '10'),
-      'sid' => array('type' => 'int', 'unsigned' => TRUE, 'not null' => TRUE, 'default' => 0, 'disp-width' => '10'),
-      'uid' => array('type' => 'int', 'unsigned' => TRUE, 'not null' => TRUE, 'default' => 0, 'disp-width' => '10'),
+      'nid'   => array('type' => 'int', 'unsigned' => TRUE, 'not null' => TRUE, 'default' => 0, 'disp-width' => '10'),
+      'sid'   => array('type' => 'int', 'unsigned' => TRUE, 'not null' => TRUE, 'default' => 0, 'disp-width' => '10'),
+      'uid'   => array('type' => 'int', 'unsigned' => TRUE, 'not null' => TRUE, 'default' => 0, 'disp-width' => '10'),
       'stamp' => array('type' => 'int', 'unsigned' => TRUE, 'not null' => TRUE, 'default' => 0, 'disp-width' => '11')),
     'primary key' => array('nid'),
     'indexes' => array(
       'nid' => array('nid', 'sid')),
-  );
-
-  $schema['workflow_actions'] = array(
-    'fields' => array(
-      'tid' => array('type' => 'int', 'unsigned' => TRUE, 'not null' => TRUE, 'default' => 0, 'disp-width' => '10'),
-      'aid' => array('type' => 'varchar', 'length' => '255', 'not null' => TRUE, 'default' => '0'),
-      'weight' => array('type' => 'int', 'unsigned' => TRUE, 'not null' => TRUE, 'default' => 0, 'disp-width' => '10')),
-    'indexes' => array(
-      'tid' => array('tid')),
   );
 
   return $schema;
@@ -271,5 +267,115 @@ QUERY
      break;
   }
 
+  return $ret;
+}
+
+// We no longer keep track of workflow actions separately in our own table.
+function workflow_update_5200() {
+  $ret = array();
+  switch ($GLOBALS['db_type']) {
+    case 'mysqli':
+    case 'mysql':
+    case 'pgsql':
+      // Move workflow action assignments to the actions_assignments table.
+      if (module_exists('actions')) {
+        $result = db_query("SELECT * FROM {workflow_actions}");
+        if ($result) {
+          $success = FALSE;
+          while ($data = db_fetch_object($result)) {
+            $success = db_query("INSERT INTO {actions_assignments} (hook, op, aid, weight) VALUES ('%s', '%s', '%s', %d)", 'workflow', 'workflow-'. $data->tid, $data->aid, $data->weight);
+          }
+        }
+        else {
+          // workflow_actions had no records; it can be safely dropped.
+          $success = TRUE;
+        }
+
+        // The workflow_actions table is no longer needed.
+        if ($success) {
+          $ret[] = update_sql("DROP TABLE {workflow_actions}");
+        }
+      }
+  }
+  return $ret;
+}
+
+// Add a field to track workflow history entry order.
+function workflow_update_5201() {
+  $ret = array();
+  switch ($GLOBALS['db_type']) {
+    case 'mysqli':
+    case 'mysql':
+      $ret[] = update_sql("ALTER TABLE {workflow_node_history} ADD hid INT NOT NULL AUTO_INCREMENT PRIMARY KEY");
+      break;
+
+    case 'pgsql':
+      $ret[] = update_sql("ALTER TABLE {workflow_node_history} ADD hid SERIAL");
+      break;
+  }
+  return $ret;
+}
+
+// Add status field to workflow states table so that deleted states can simply
+// be marked deleted without actually being removed (that way they still show up
+// in workflow history for a node).
+function workflow_update_5202() {
+  $ret = array();
+  switch ($GLOBALS['db_type']) {
+    case 'mysqli':
+    case 'mysql':
+      $ret[] = update_sql("ALTER TABLE {workflow_states} ADD status TINYINT NOT NULL DEFAULT '1'");
+      break;
+
+    case 'pgsql':
+      $ret[] = update_sql("ALTER TABLE {workflow_states} ADD status SMALLINT NOT NULL DEFAULT '1'");
+      break;
+  }
+  return $ret;
+}
+
+// We now require that a transition include both a descriptor and a target state instead
+// of just a target state. So ops are changing from 'workflow-35' to 'workflow-page-35'.
+function workflow_update_5203() {
+  $ret = array();
+  if (module_exists('actions')) {
+    $result = db_query("SELECT hook, op, aid, weight FROM {actions_assignments} WHERE hook = 'workflow'");
+    while ($data = db_fetch_object($result)) {
+      $op_parts = explode('-', $data->op);
+      // The ops we have to update have only two parts, e.g., workflow-35.
+      if (count($op_parts) == 3) {
+        continue;
+      }
+      $tid = $op_parts[1];
+      // Assign a type to this hook.
+      $wid = db_result(db_query("SELECT ws.wid FROM {workflow_states} ws LEFT JOIN {workflow_transitions} wt ON ws.sid = wt.sid WHERE wt.tid = %d", $tid));
+      // Get the first node type associated with this hook (if there are multiple types,
+      // we can't decide between them so we take the first one).
+      $type = db_result(db_query("SELECT type FROM {workflow_type_map} WHERE wid = %d LIMIT 1", $wid));
+      $new_op = 'workflow-'. $type .'-'. $tid;
+      $query_result = db_query("UPDATE {actions_assignments} SET op = '%s' WHERE hook = 'workflow' AND op = '%s' AND aid = '%s' AND weight = %d", $new_op, $data->op, $data->aid, $data->weight);
+      $ret[] = array('success' => $query_result !== FALSE, 'query' => check_plain('op '. $data->op .' => '. $new_op));
+    }
+  }
+  return $ret;
+}
+
+// The workflow_transitions field was too small, resulting in truncation with many roles.
+function workflow_update_5204() {
+  $ret = array();
+  switch ($GLOBALS['db_type']) {
+    case 'mysqli':
+    case 'mysql':
+      $ret[] = update_sql("ALTER TABLE {workflow_transitions} CHANGE roles roles VARCHAR(255) NULL DEFAULT NULL");
+      break;
+    case 'pgsql':
+      $ret[] = update_sql("BEGIN;
+        ALTER TABLE {workflow_transitions} ADD COLUMN roles_temp VARCHAR(255);
+        UPDATE roles_temp SET new_col = CAST(roles AS VARCHAR(255));
+        ALTER TABLE {actions_assignments} DROP COLUMN roles;
+        RENAME roles_temp TO roles;
+        COMMIT;");
+      break;
+  }
   return $ret;
 }

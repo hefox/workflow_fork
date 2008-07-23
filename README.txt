@@ -85,30 +85,23 @@ would turn in drafts and editors would say when they are "done".
 Be sure to click the Save button to save your settings.
 
 Now let's tell Drupal which node types should use this workflow. Click
-on admin -> build -> workflow. Let's assign the Draft-Done workflow
-to the story node type and click Save Workflow Mapping.
+on Administer -> Site building -> Workflow. Let's assign the Draft-Done
+workflow to the story node type and click Save Workflow Mapping.
 
-Now we could add an action (previously configured using the actions
-module). If you have not configured your action yet, here's a quick
-guide:
-
-- go to administer -> actions
-- choose an action and click "Add new action"
-- configure the action and click Save. Note that the description field
-  here will be used later on
-
-OK, back in the workflow module, click on the actions link above
+Now we could add an action (previously configured using the trigger
+module). Click on the Actions link above
 your workflow. Add the action to the transition.
 
-Now create a new story by going to create content -> story. Note that
-there is no sign of workflow here because the story is in its
-initial state. Click submit to create the story.
+Now create a new story by going to Create content -> Story. If there
+is no sign of a workflow interface here, don't panic. The interface
+is only displayed if there is more than one state to which the user
+can move the node (why bother the user with a form with only one
+selection?) Click Submit to create the story.
 
-Now click the edit tab. Note that there is a select box for workflow
-with the "draft" state chosen.
+You can see the state the node is in and the history of state changes
+by clicking on the Workflow tab while viewing a node.
 
 Changing the state to "done" and clicking Submit will fire the action
 you set up earlier.
-
 
 ********************************************************************
