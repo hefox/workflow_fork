@@ -13,8 +13,6 @@ function workflow_access_install() {
  */
 function workflow_access_uninstall() {
   drupal_uninstall_schema('workflow_access');
-  // Purge records from the node access table.
-  node_access_rebuild();
 }
 
 /**

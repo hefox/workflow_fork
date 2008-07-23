@@ -908,7 +908,7 @@ function workflow_workflow($op, $old_state, $new_state, $node) {
         foreach ($aids as $aid => $action_info) {
           if ($action_info['type'] != 'node') {
             if (!isset($objects[$action_info['type']])) {
-              $objects[$action_info['type']] = _actions_normalize_node_context($action_info['type'], $node);
+              $objects[$action_info['type']] = _trigger_normalize_node_context($action_info['type'], $node);
            }
            // Since we know about the node, we pass that info along to the action.
            $context['node'] = $node;
