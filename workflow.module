@@ -10,14 +10,14 @@ define('WORKFLOW_ARROW', '&#8594;');
  */
 function workflow_help($path, $arg) {
   switch ($path) {
-    case strstr($path, 'admin/build/workflow/edit'):
+    case 'admin/build/workflow/edit/%':
       return t('You are currently viewing the possible transitions to and from workflow states. The state is shown in the left column; the state to be moved to is to the right. For each transition, check the box next to the role(s) that may initiate the transition. For example, if only the "production editor" role may move a node from Review state to the Published state, check the box next to "production editor". The author role is built in and refers to the user who authored the node.');
     case 'admin/build/workflow/add':
       return t('To get started, provide a name for your workflow. This name will be used as a label when the workflow status is shown during node editing.');
-    case strstr($path, 'admin/build/workflow/state'):
+    case 'admin/build/workflow/state':
       return t('Enter the name for a state in your workflow. For example, if you were doing a meal workflow it may include states like <em>shop</em>, <em>prepare</em>, <em>eat</em>, and <em>clean up</em>.');
-    case strstr($path, 'admin/build/workflow/actions') && (sizeof($path) == 22):
-      return t('Use this page to set actions to happen when transitions occur. To <a href="@link">configure actions</a>, use the actions module.', array('@link' => url('admin/actions')));
+    case 'admin/build/trigger/workflow':
+      return t('Use this page to set actions to happen when transitions occur. To configure actions, use the <a href="@link">actions settings page</a>.', array('@link' => url('admin/settings/actions')));
   }
 }
 
@@ -80,13 +80,6 @@ function workflow_menu() {
     'access arguments' => array('administer workflow'),
     'page callback' => 'drupal_get_form',
     'page arguments' => array('workflow_delete_form')
-  );
-  $items['admin/build/workflow/actions/remove'] = array(
-    'title' => 'Workflow actions',
-    'type' => MENU_CALLBACK,
-    'access arguments' => array('administer workflow'),
-    'page callback' => 'drupal_get_form',
-    'page arguments' => array('workflow_actions_remove_form')
   );
   $items["node/%node/workflow"] = array(
     'title' => 'Workflow',
