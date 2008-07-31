@@ -889,8 +889,8 @@ function workflow_workflow($op, $old_state, $new_state, $node) {
 
     case 'transition post':
       // A transition has occurred; fire off actions associated with this transition.
-      // Can't fire actions if actions module is not enabled.
-      if (!function_exists('actions_do')) {
+      // Can't fire actions if trigger module is not enabled.
+      if (!module_exists('trigger')) {
         break;
       }
       $tid = workflow_get_transition_id($old_state, $new_state);
