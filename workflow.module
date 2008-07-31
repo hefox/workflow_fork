@@ -2087,7 +2087,7 @@ function workflow_get_transition_id($from, $to) {
  */
 function workflow_actions_remove($tid, $aid, $description) {
   db_query("DELETE FROM {trigger_assignments} WHERE hook = '%s' AND op = '%s' AND aid = '%s'", 'workflow', 'workflow'. $tid, $aid);
-  watchdog('workflow', t('Action %action has been unassigned.',  array('%action' => $description)));
+  watchdog('workflow', 'Action %action has been unassigned.',  array('%action' => $description));
 }
 
 /**
