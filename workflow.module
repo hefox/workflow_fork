@@ -1610,7 +1610,7 @@ function workflow_state_delete_form($form_state, $wid, $sid) {
     $form['new_sid'] = array(
       '#type' => 'select',
       '#title' => t('State to be assigned to orphaned nodes'),
-      '#description' => format_plural($count, 'Since you are deleting a workflow state, @count node which is in that state will be orphaned, and must be reassigned to a new state. Please choose the new state.', 'Since you are deleting a workflow state, @count nodes which are in that state will be orphaned, and must be reassigned to a new state. Please choose the new state.'),
+      '#description' => format_plural($count, 'Since you are deleting a workflow state, a node which is in that state will be orphaned, and must be reassigned to a new state. Please choose the new state.', 'Since you are deleting a workflow state, @count nodes which are in that state will be orphaned, and must be reassigned to a new state. Please choose the new state.'),
       '#options' => $states,
     );
   }
@@ -2226,7 +2226,7 @@ function workflow_views_arguments() {
     'workflow_state' => array(
       'name' => t('Workflow: state'),
       'handler' => 'workflow_handler_arg_sid',
-      'help' => t('The work flow argument allows users to filter a view by workflow state.'),
+      'help' => t('The workflow argument allows users to filter a view by workflow state.'),
     ),
   );
   return $arguments;
