@@ -49,7 +49,7 @@ function workflow_menu() {
     'title' => 'List',
     'weight' => -10,
     'access arguments' => array('administer workflow'),
-    'page callback' => 'workflow_page',
+    'page callback' => 'workflow_overview',
     'type' => MENU_DEFAULT_LOCAL_TASK
   );
   $items['admin/build/workflow/add'] = array(
@@ -300,7 +300,7 @@ function workflow_tab_form($form_state, &$node, $wid, $states, $current) {
 
     // Include the same form elements here that are included on a
     // regular node editing page. $form is modified by reference.
-    workflow_node_form($form, t('Change %s state', array('%s' => $name)), $name, $current, $choices, $timestamp, $comment);
+    workflow_node_form($form, $form_state, t('Change %s state', array('%s' => $name)), $name, $current, $choices, $timestamp, $comment);
 
     $form['node'] = array(
       '#type' => 'value',
@@ -446,7 +446,10 @@ function workflow_transition($node, $sid) {
         db_query("DELETE FROM {workflow_scheduled_transition} WHERE nid = %d", $node->nid);
         db_query("INSERT INTO {workflow_scheduled_transition} VALUES (%d, %d, %d, %d, '%s')", $node->nid, $old_sid, $sid, $scheduled, $comment);
 
-        drupal_set_message(t("@node_title is scheduled for state change on !scheduled_date", array( "@node_title" => $node->title, "!scheduled_date" => format_date($scheduled))));
+        // Get name of state.
+        $state_name = db_result(db_query('SELECT state FROM {workflow_states} WHERE sid = %d', $sid));
+        watchdog('workflow', '@node_title scheduled for state change to %state_name on !scheduled_date', array('@node_title' => $node->title, '%state_name' => $state_name, '!scheduled_date' => format_date($scheduled)), WATCHDOG_NOTICE, l('view', "node/$node->nid/workflow"));
+        drupal_set_message(t('@node_title is scheduled for state change to %state_name on !scheduled_date', array('@node_title' => $node->title, '%state_name' => $state_name, '!scheduled_date' => format_date($scheduled))));
       }
     }
   }
@@ -467,7 +470,7 @@ function workflow_transition($node, $sid) {
  * @param $choices
  *   An array of possible target states.
  */
-function workflow_node_form(&$form, $title, $name, $current, $choices, $timestamp = NULL, $comment = NULL) {
+function workflow_node_form(&$form, $form_state, $title, $name, $current, $choices, $timestamp = NULL, $comment = NULL) {
   // No sense displaying choices if there is only one choice.
   if (sizeof($choices) == 1) {
     $form['workflow'][$name] = array(
@@ -499,15 +502,15 @@ function workflow_node_form(&$form, $title, $name, $current, $choices, $timestam
           t('Immediately'),
           t('Schedule for state change at:'),
         ),
-        '#default_value' => $scheduled,
+        '#default_value' => isset($form_state['values']['workflow_scheduled']) ? $form_state['values']['workflow_scheduled'] : $scheduled,
       );
 
       $form['workflow']['workflow_scheduled_date'] = array(
         '#type' => 'date',
         '#default_value' => array(
-          'day'   => format_date($timestamp, 'custom', 'j'),
-          'month' => format_date($timestamp, 'custom', 'n'),
-          'year'  => format_date($timestamp, 'custom', 'Y')
+          'day'   => isset($form_state['values']['workflow_scheduled_date']['day']) ? $form_state['values']['workflow_scheduled_date']['day'] : format_date($timestamp, 'custom', 'j'),
+          'month' => isset($form_state['values']['workflow_scheduled_date']['month']) ? $form_state['values']['workflow_scheduled_date']['month'] :format_date($timestamp, 'custom', 'n'),
+          'year'  => isset($form_state['values']['workflow_scheduled_date']['year']) ? $form_state['values']['workflow_scheduled_date']['year'] : format_date($timestamp, 'custom', 'Y')
         ),
       );
 
@@ -515,7 +518,7 @@ function workflow_node_form(&$form, $title, $name, $current, $choices, $timestam
       $form['workflow']['workflow_scheduled_hour'] = array(
         '#type' => 'textfield',
         '#description' => t('Please enter a time in 24 hour (eg. HH:MM) format. If no time is included, the default will be midnight on the specified date. The current time is: ') . format_date(time()),
-        '#default_value' => $scheduled ? $hours : NULL,
+        '#default_value' => $scheduled ? (isset($form_state['values']['workflow_scheduled_hour']) ? $form_state['values']['workflow_scheduled_hour'] : $hours) : NULL,
       );
     }
 
@@ -588,20 +591,20 @@ function workflow_form_alter(&$form, $form_state, $form_id) {
 
     // See if scheduling information is present.
     if ($node->_workflow_scheduled_timestamp && $node->_workflow_scheduled_sid) {
-      global $user;
-      if (variable_get('configurable_timezones', 1) && $user->uid && strlen($user->timezone)) {
-        $timezone = $user->timezone;
-      }
-      else {
-        $timezone = variable_get('date_default_timezone', 0);
+      if (isset($form_state['values']['_workflow_scheduled_sid'])) {
+        $foo = 'bar';
       }
       // The default value should be the upcoming sid.
       $current = $node->_workflow_scheduled_sid;
       $timestamp = $node->_workflow_scheduled_timestamp;
       $comment = $node->_workflow_scheduled_comment;
     }
+    
+    if (isset($form_state['values']['workflow_comment'])) {
+      $comment = $form_state['values']['workflow_comment'];
+    }
 
-    workflow_node_form($form, $name, $name, $current, $choices, $timestamp, $comment);
+    workflow_node_form($form, $form_state, $name, $name, $current, $choices, $timestamp, $comment);
   }
 }
 
