@@ -7,37 +7,6 @@
  */
 
 /**
- * Implementation of hook_enable().
- *
- * Force a rebuild of the node access table when enabled to ensure that things are set up.
- */
-function workflow_access_enable() {
-  node_access_rebuild();
-}
-
-/**
- * Implementation of hook_disable().
- *
- * Force a rebuild of the node access table when disabled to ensure 
- * that our entries are removed from the table.
- */
-function workflow_access_disable() {
-  workflow_access_disabling(TRUE);
-  node_access_rebuild();
-}
-
-/**
- * Make sure we don't respond with grants when disabling ourselves.
- */
-function workflow_access_disabling($value = NULL) {
-  static $disabling = FALSE;
-  if (isset($value)) {
-    $disabling = $value;
-  }
-  return $disabling;
-}
-
-/**
  * Implementation of hook_node_grants().
  *
  * Supply the workflow access grants. We are simply using
@@ -56,10 +25,6 @@ function workflow_access_node_grants($account, $op) {
  * Returns a list of grant records for the passed in node object.
  */
 function workflow_access_node_access_records($node) {
-  if (workflow_access_disabling()) {
-    return;
-  }
-
   $grants = array();
   $sid = db_result(db_query("SELECT sid FROM {workflow_node} WHERE nid = %d", $node->nid));
 
@@ -95,13 +60,10 @@ function workflow_access_form_alter(&$form, $form_state, $form_id) {
   // A list of roles available on the site and our 
   // special -1 role used to represent the node author.
   // TODO i think there is an API call for this -- user_roles() perhaps?
-  $rids = array('-1' => t('author'));
-  $result = db_query("SELECT r.rid, r.name FROM {role} r ORDER BY r.name");
-  while ($obj = db_fetch_object($result)) {
-    $rids[$obj->rid] = $obj->name;
-  }
-
-  $form['workflow_access'] = array('#type' => 'fieldset', 
+  $rids = array_merge(user_roles(), array('-1' => t('author')));
+  
+  $form['workflow_access'] = array(
+    '#type' => 'fieldset', 
     '#title' => t('Access control'),
     '#collapsible' => TRUE,
     '#tree' => TRUE,
@@ -119,12 +81,6 @@ function workflow_access_form_alter(&$form, $form_state, $form_id) {
 
     $result = db_query("SELECT * from {workflow_access} where sid = %d", $sid);
 
-    // Allow view grants by default for anonymous and authenticated users, 
-    // if no grants were set up earlier.
-    if (db_num_rows($result) == 0) {
-      $view = array(DRUPAL_ANONYMOUS_RID, DRUPAL_AUTHENTICATED_RID);
-    }
-
     while ($access = db_fetch_object($result)) {
       if ($access->grant_view) {
         $view[] = $access->rid;
@@ -135,6 +91,12 @@ function workflow_access_form_alter(&$form, $form_state, $form_id) {
       if ($access->grant_delete) {
         $delete[] = $access->rid;
       }
+    }
+    
+    // Allow view grants by default for anonymous and authenticated users, 
+    // if no grants were set up earlier.
+    if (empty($view)) {
+      $view = array(DRUPAL_ANONYMOUS_RID, DRUPAL_AUTHENTICATED_RID);     
     }
     
     // TODO better tables using a #theme function instead of direct #prefixing
@@ -175,8 +137,8 @@ function workflow_access_form_alter(&$form, $form_state, $form_id) {
 /**
  * Store permission settings for workflow states.
  */
-function workflow_access_form_submit($form_id, $form_values) {
-  foreach ($form_values['workflow_access'] as $sid => $access) {
+function workflow_access_form_submit($form, $form_state) {
+  foreach ($form_state['values']['workflow_access'] as $sid => $access) {
     // Ignore irrelevant keys.
     if (!is_numeric($sid)) {
       continue; 
@@ -188,19 +150,19 @@ function workflow_access_form_submit($form_id, $form_values) {
       $grants[] = array(
         'realm'        => ($rid == -1) ? 'workflow_access_owner' : 'workflow_access',
         'gid'          => ($rid == -1) ? $node->uid : $rid,
-        'grant_view'   => (bool) $checked,
-        'grant_update' => (bool) $access['update'][$rid],
-        'grant_delete' => (bool) $access['delete'][$rid],
+        'grant_view'   => (bool)$checked,
+        'grant_update' => (bool)$access['update'][$rid],
+        'grant_delete' => (bool)$access['delete'][$rid],
       );
 
-      db_query("INSERT INTO {workflow_access} (sid, rid, grant_view, grant_update, grant_delete) VALUES (%d, %d, %d, %d, %d)", $sid, $rid, (bool) $checked, (bool) $access['update'][$rid], (bool) $access['delete'][$rid]);
+      db_query("INSERT INTO {workflow_access} (sid, rid, grant_view, grant_update, grant_delete) VALUES (%d, %d, %d, %d, %d)", $sid, $rid, (bool)$checked, (bool)$access['update'][$rid], (bool)$access['delete'][$rid]);
     }
 
-    // Update all nodes having some workflow state to reflect new settings.
+    // Update all nodes having same workflow state to reflect new settings.
     $result = db_query("SELECT n.nid FROM {node} n LEFT JOIN {workflow_node} wn ON wn.nid = n.nid WHERE wn.sid = %d", $sid);
     while ($node = db_fetch_object($result)) {
       // TODO: this only works with workflow_access realm, not the workflow_access_owner realm?!
-      node_access_write_grants(node_load($node->nid), $grants, 'workflow_access');
+      node_access_write_grants($node, $grants, 'workflow_access');
     }
   }
   drupal_set_message(t('Workflow access permissions updated.'));

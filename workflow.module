@@ -556,7 +556,10 @@ function workflow_form_alter(&$form, $form_state, $form_id) {
     $choices = workflow_field_choices($node);
     $wid = workflow_get_workflow_for_type($node->type);
     $states = workflow_get_states($wid);
-    $current = workflow_node_current_state($node);
+    // If this is a preview, the current state should come from
+    // the form values, not the node, as the user may have changed
+    // the state.
+    $current = isset($form_state['values']['workflow']) ? $form_state['values']['workflow'] : workflow_node_current_state($node);
     $min = $states[$current] == t('(creation)') ? 1 : 2;
     // Stop if user has no new target state(s) to choose.
     if (count($choices) < $min) {
@@ -1127,6 +1130,7 @@ function workflow_edit_form($form_state, $workflow) {
   $form['permissions'] = array(
     '#type' => 'fieldset',
     '#title' => t('Permissions Summary'),
+    '#collapsible' => TRUE,
   );
   $form['permissions']['summary'] = array(
     '#value' => workflow_permissions($workflow->wid),
