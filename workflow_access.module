@@ -51,15 +51,9 @@ function workflow_access_node_access_records($node) {
  * Add a "three dimensional" (state, role, permission type) configuration 
  * interface to the workflow edit form.
  */
-function workflow_access_form_alter(&$form, $form_state, $form_id) {
-  // We only work with the workflow edit form.
-  if ($form_id != 'workflow_edit_form') {
-    return;
-  }
-
+function workflow_access_form_workflow_edit_form_alter(&$form, $form_state) {
   // A list of roles available on the site and our 
   // special -1 role used to represent the node author.
-  // TODO i think there is an API call for this -- user_roles() perhaps?
   $rids = array_merge(user_roles(), array('-1' => t('author')));
   
   $form['workflow_access'] = array(
@@ -74,14 +68,16 @@ function workflow_access_form_alter(&$form, $form_state, $form_id) {
   foreach ($states as $sid => $state) {
     
     if (workflow_is_system_state($state)) {
-      continue; // no need to set perms on creation
+      // No need to set perms on creation.
+      continue;
     }
-    
+        
     $view = $update = $delete = array();
 
     $result = db_query("SELECT * from {workflow_access} where sid = %d", $sid);
-
+    $count = 0;
     while ($access = db_fetch_object($result)) {
+      $count++;
       if ($access->grant_view) {
         $view[] = $access->rid;
       }
@@ -95,7 +91,7 @@ function workflow_access_form_alter(&$form, $form_state, $form_id) {
     
     // Allow view grants by default for anonymous and authenticated users, 
     // if no grants were set up earlier.
-    if (empty($view)) {
+    if (!$count) {
       $view = array(DRUPAL_ANONYMOUS_RID, DRUPAL_AUTHENTICATED_RID);     
     }
     
@@ -131,7 +127,7 @@ function workflow_access_form_alter(&$form, $form_state, $form_id) {
   }
   // Place our block comfortably down the page.
   $form['submit']['#weight'] = 10;
-  $form['#submit'] += array('workflow_access_form_submit' => array());
+  $form['#submit'][] = 'workflow_access_form_submit';
 }
 
 /**
