@@ -1279,7 +1279,7 @@ function workflow_state_add_form(&$form_state, $wid, $sid = NULL) {
     '#size'  => '16',
     '#maxlength' => '254',
     '#required' => TRUE,
-    '#description' => t('Enter the name for a state in your workflow. For example, if you were doing a meal workflow it may include states like <em>shop</em>, <em>prepare food</em>, <em>eat</em>, and <em>clean up</em>.'),
+    '#description' => t('Enter the name for a state in your workflow. For example, if you were doing a meal workflow it may include states like <em>shop</em>, <em>prepare</em>, <em>eat</em>, and <em>clean up</em>.'),
   );
   $form['weight'] = array(
     '#type' => 'weight',
