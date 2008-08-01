@@ -535,7 +535,7 @@ function workflow_node_form(&$form, $title, $name, $current, $choices, $timestam
  * @param object &$node
  * @return array
  */
-function workflow_form_alter($form_id, &$form) {
+function workflow_form_alter(&$form, $form_state, $form_id) {
   // Ignore all forms except comment forms and node editing forms.
   if ($form_id == 'comment_form' || (isset($form['type']) && isset($form['#node']) && $form['type']['#value'] .'_node_form' == $form_id)) {
     if (isset($form['#node'])) {

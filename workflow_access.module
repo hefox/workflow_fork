@@ -86,7 +86,7 @@ function workflow_access_node_access_records($node) {
  * Add a "three dimensional" (state, role, permission type) configuration 
  * interface to the workflow edit form.
  */
-function workflow_access_form_alter($form_id, &$form) {
+function workflow_access_form_alter(&$form, $form_state, $form_id) {
   // We only work with the workflow edit form.
   if ($form_id != 'workflow_edit_form') {
     return;
