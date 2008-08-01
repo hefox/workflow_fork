@@ -17,7 +17,7 @@ Workflows are made up of workflow states.
 Moving from one state to another is called a transition.
 
 Actions are associated with transitions (actions.module was used
-for this in Drupal 5; core actions support for Drupal 6 is a todo).
+for this in Drupal 5; core actions support is in Drupal 6).
 
 Alex Reisner introduced role-based permissions for workflow states
 and generally enhanced this module.
