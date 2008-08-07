@@ -231,7 +231,7 @@ class views_handler_argument_workflow_state extends views_handler_argument {
 }
 
 /**
- * Filter by node type
+ * Filter by state.
  */
 class workflow_views_handler_filter_sid extends views_handler_filter_in_operator {
   var $value_form_type = 'select';
