@@ -29,7 +29,7 @@ function workflow_views_data() {
 
   // state weight
   $data['workflow_states']['weight'] = array(
-    'title' => t('State weight'), // The item it appears as on the UI,
+    'title' => t('State weight'), // Appears in views UI.
     'help' => t('The weight of the current workflow state that the node is in.'),
     'sort' => array(
       'handler' => 'views_handler_sort_numeric',
@@ -38,8 +38,8 @@ function workflow_views_data() {
 
   // state
   $data['workflow_states']['state'] = array(
-    'title' => t('Current state name'), // The item it appears as on the UI,
-    'help' => t('The readable name of the workflow state that the node is in. (less efficient, use only when click-sorting by state name)'),
+    'title' => t('Current state name'), // Appears in views UI.
+    'help' => t('The readable name of the workflow state that the node is in. (Less efficient, use only when click-sorting by state name.)'),
     'field' => array(
       'handler' => 'views_handler_field',
       'click sortable' => TRUE,
@@ -58,7 +58,7 @@ function workflow_views_data() {
 
   // state
   $data['workflow_node']['sid'] = array(
-    'title' => t('Current state'), // The item it appears as on the UI,
+    'title' => t('Current state'), // Appears in views UI.
     'help' => t('The current workflow state that the node is in.'),
     'field' => array(
       'handler' => 'workflow_views_handler_field_sid',
@@ -87,7 +87,7 @@ function workflow_views_data() {
 
   // state
   $data['workflow_scheduled_transition']['sid'] = array(
-    'title' => t('Scheduled state'), // The item it appears as on the UI,
+    'title' => t('Scheduled state'), // Appears in views UI.
     'help' => t('The current workflow state that the node is in.'),
     'field' => array(
       'handler' => 'workflow_views_handler_field_sid',
@@ -101,7 +101,7 @@ function workflow_views_data() {
 
   // time
   $data['workflow_scheduled_transition']['scheduled'] = array(
-    'title' => t('Scheduled time'), // The item it appears as on the UI,
+    'title' => t('Scheduled time'), // Appears in views UI.
     'help' => t('The time at which the node will change workflow states.'),
     'field' => array(
       'handler' => 'views_handler_field_date',
@@ -118,7 +118,7 @@ function workflow_views_data() {
 
   // comment
   $data['workflow_scheduled_transition']['comment'] = array(
-    'title' => t('Scheduled comment'), // The item it appears as on the UI,
+    'title' => t('Scheduled comment'), // Appears in views UI.
     'help' => t('A comment describing why the node was scheduled for state transition.'),
     'field' => array(
       'handler' => 'views_handler_field_xss',
@@ -142,8 +142,8 @@ function workflow_views_data() {
 
   // state
   $data['workflow_node_history']['sid'] = array(
-    'title' => t('Previous state'), // The item it appears as on the UI,
-    'help' => t('A workflow state that the node was previously in.'),
+    'title' => t('Previous state'), // Appears in views UI.
+    'help' => t('A workflow state that the node was in previously.'),
     'field' => array(
       'handler' => 'workflow_views_handler_field_sid',
       'click sortable' => TRUE,
@@ -156,7 +156,7 @@ function workflow_views_data() {
 
   // time
   $data['workflow_node_history']['stamp'] = array(
-    'title' => t('Previous time'), // The item it appears as on the UI,
+    'title' => t('Previous time'), // Appears in views UI.
     'help' => t('The time at which the node moved from one state to another.'),
     'field' => array(
       'handler' => 'views_handler_field_date',
@@ -173,7 +173,7 @@ function workflow_views_data() {
 
   // comment
   $data['workflow_node_history']['comment'] = array(
-    'title' => t('Previous comment'), // The item it appears as on the UI,
+    'title' => t('Previous comment'), // Appears in views UI.
     'help' => t('A comment describing why the node was moved from one state to another in the past.'),
     'field' => array(
       'handler' => 'views_handler_field_xss',
@@ -215,7 +215,7 @@ class views_handler_argument_workflow_state extends views_handler_argument {
 
   function workflow_states($sid) {
     if (empty($sid)) {
-      return '';
+      return t('No state');
     }
 
     static $states;
@@ -224,7 +224,7 @@ class views_handler_argument_workflow_state extends views_handler_argument {
     }
     $output = $states[$sid];
     if (empty($output)) {
-      $output = t('Unknown state');
+      $output = t('No state');
     }
     return check_plain($output);
   }
@@ -242,7 +242,7 @@ class workflow_views_handler_filter_sid extends views_handler_filter_in_operator
 
       $workflows = workflow_get_all();
       if (count($workflows) > 1) {
-        $states = array();
+        $states = array('' => t('No state'));
         foreach ($workflows as $wid => $wname) {
           $states[$wname] = workflow_get_states($wid);
         }
@@ -280,7 +280,7 @@ class workflow_views_handler_filter_sid extends views_handler_filter_in_operator
 class workflow_views_handler_field_sid extends views_handler_field {
   function render($values) {
     if (empty($values->{$this->field_alias})) {
-      return '';
+      return t('No state');
     }
 
     static $states;

@@ -30,7 +30,7 @@ function workflow_help($path, $arg) {
  * Implementation of hook_perm().
  */
 function workflow_perm() {
-  return array('administer workflow', 'schedule workflow transitions');
+  return array('administer workflow', 'schedule workflow transitions', 'access workflow summary view');
 }
 
 /**
