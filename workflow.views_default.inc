@@ -90,9 +90,9 @@ function workflow_views_default_views() {
   $handler->override_option('access', array(
     'type' => 'perm',
     'role' => array(),
-    'perm' => 'access workflow summary view',
+    'perm' => 'access workflow summary views',
   ));
-  $handler->override_option('title', 'Workflow Summary');
+  $handler->override_option('title', 'Workflow summary');
   $handler->override_option('items_per_page', 25);
   $handler->override_option('use_pager', '1');
   $handler->override_option('style_plugin', 'table');
@@ -118,17 +118,18 @@ function workflow_views_default_views() {
     'default' => 'state',
   ));
   $handler = $view->new_display('page', 'Page', 'page_1');
-  $handler->override_option('path', 'workflow/view/state');
+  $handler->override_option('path', 'workflow/summary');
   $handler->override_option('menu', array(
+    'type' => 'default tab',
+    'title' => 'Summary',
+    'weight' => '-1',
+  ));
+  $handler->override_option('tab_options', array(
     'type' => 'normal',
     'title' => 'Workflow summary',
     'weight' => '0',
   ));
-  $handler->override_option('tab_options', array(
-    'type' => 'none',
-    'title' => '',
-    'weight' => 0,
-  ));
+
   $views[$view->name] = $view;
 
   $view = new view;
@@ -220,17 +221,17 @@ function workflow_views_default_views() {
   $handler->override_option('access', array(
     'type' => 'perm',
     'role' => array(),
-    'perm' => 'access workflow pending view',
+    'perm' => 'access workflow summary views',
   ));
   $handler->override_option('title', 'Workflow Pending Changes');
   $handler->override_option('items_per_page', 25);
   $handler->override_option('use_pager', '1');
   $handler->override_option('style_plugin', 'table');
   $handler = $view->new_display('page', 'Page', 'page_1');
-  $handler->override_option('path', 'workflow/view/pending');
+  $handler->override_option('path', 'workflow/pending');
   $handler->override_option('menu', array(
-    'type' => 'normal',
-    'title' => 'Workflow pending',
+    'type' => 'tab',
+    'title' => 'Pending',
     'weight' => '0',
   ));
   $handler->override_option('tab_options', array(
