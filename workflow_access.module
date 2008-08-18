@@ -54,7 +54,8 @@ function workflow_access_node_access_records($node) {
 function workflow_access_form_workflow_edit_form_alter(&$form, $form_state) {
   // A list of roles available on the site and our 
   // special -1 role used to represent the node author.
-  $rids = array_merge(user_roles(), array('-1' => t('author')));
+  $rids = user_roles();
+  $rids['-1'] = t('author');
   
   $form['workflow_access'] = array(
     '#type' => 'fieldset', 
