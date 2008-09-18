@@ -1395,6 +1395,17 @@ function workflow_hook_info() {
 }
 
 /**
+ * Implementation of hook_menu_alter().
+ * 
+ * Work around loss of menu local task inheritance in Drupal 6.2.
+ */
+function workflow_menu_alter(&$callbacks) {
+  if (module_exists('trigger')) {
+    $callbacks['admin/build/trigger/workflow']['access callback'] = 'trigger_access_check';
+  }
+}
+
+/**
  * Implementation of hook_token_values().
  */
 function workflow_token_values($type, $object = NULL) {
