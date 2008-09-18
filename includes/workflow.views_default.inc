@@ -89,7 +89,6 @@ function workflow_views_default_views() {
   ));
   $handler->override_option('access', array(
     'type' => 'perm',
-    'role' => array(),
     'perm' => 'access workflow summary views',
   ));
   $handler->override_option('title', 'Workflow summary');
@@ -220,7 +219,6 @@ function workflow_views_default_views() {
   ));
   $handler->override_option('access', array(
     'type' => 'perm',
-    'role' => array(),
     'perm' => 'access workflow summary views',
   ));
   $handler->override_option('title', 'Workflow Pending Changes');
