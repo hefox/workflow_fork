@@ -180,6 +180,16 @@ function workflow_theme() {
 }
 
 /**
+ * Implementation of hook_views_api().
+ */
+function workflow_views_api() {
+  return array(
+    'api' => 2,
+    'path' => drupal_get_path('module', 'workflow') .'/includes',
+  );
+}
+
+/**
  * Implementation of hook_nodeapi().
  */
 function workflow_nodeapi(&$node, $op, $teaser = NULL, $page = NULL) {

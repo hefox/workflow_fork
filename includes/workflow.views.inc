@@ -2,7 +2,7 @@
 // $Id$
 /**
  * @file
- * Provide views data and handlers for workflow.module.
+ * Provide views data and handler information for workflow.module.
  */
 
 /**
@@ -188,113 +188,33 @@ function workflow_views_data() {
   return $data;
 }
 
-
-/**
- * Argument handler to accept a node type.
- */
-class views_handler_argument_workflow_state extends views_handler_argument {
-  function construct() {
-    parent::construct('type');
-  }
-
-  /**
-   * Override the behavior of summary_name(). Get the user-friendly version
-   * of the workflow state.
-   */
-  function summary_name($data) {
-    return $this->workflow_states($data->{$this->name_alias});
-  }
-
-  /**
-   * Override the behavior of title(). Get the user-friendly version of the
-   * workflow state.
-   */
-  function title() {
-    return $this->workflow_states($this->argument);
-  }
-
-  function workflow_states($sid) {
-    if (empty($sid)) {
-      return t('No state');
-    }
-
-    static $states;
-    if (!isset($states)) {
-      $states = workflow_get_states();
-    }
-    $output = $states[$sid];
-    if (empty($output)) {
-      $output = t('No state');
-    }
-    return check_plain($output);
-  }
-}
-
-/**
- * Filter by state.
- */
-class workflow_views_handler_filter_sid extends views_handler_filter_in_operator {
-  var $value_form_type = 'select';
-
-  function get_value_options() {
-    if (!isset($this->value_options)) {
-      $this->value_title = t('Workflow state');
-
-      $workflows = workflow_get_all();
-      if (count($workflows) > 1) {
-        $states = array('' => t('No state'));
-        foreach ($workflows as $wid => $wname) {
-          $states[$wname] = workflow_get_states($wid);
-        }
-      }
-      else {
-        $states = workflow_get_states();
-      }
-
-      $this->value_options = $states;
-    }
-  }
-
-  function query() {
-    if (empty($this->value)) {
-      return;
-    }
-    $this->ensure_my_table();
-    $placeholder = !empty($this->definition['numeric']) ? '%d' : "'%s'";
-
-    if (count($this->value) == 1) {
-      $this->operator = ($this->operator == 'in') ? '= ' : '!= ';
-      $in = !empty($this->definition['numeric']) ? '%d' : "'%s'";
-    }
-    else {
-      $replace = array_fill(0, sizeof($this->value), $placeholder);
-      $in = ' (' . implode(", ", $replace) . ')';
-    }
-    $this->query->add_where($this->options['group'], "$this->table_alias.$this->real_field " . $this->operator . $in, $this->value);
-  }
-}
-
-/**
- * Field handler to provide simple renderer that allows linking to a node.
- */
-class workflow_views_handler_field_sid extends views_handler_field {
-  function render($values) {
-    if (empty($values->{$this->field_alias})) {
-      return t('No state');
-    }
-
-    static $states;
-    if (!isset($states)) {
-      $states = workflow_get_states();
-    }
-    $output = $states[$values->{$this->field_alias}];
-    if (empty($output)) {
-      $output = t('Unknown state');
-    }
-    return check_plain($output);
-  }
-}
-
 /**
  * @}
  */
+
+/**
+ * Implementation of hook_views_handlers().
+ */
+function workflow_views_handlers() {
+  return array(
+    'info' => array(
+      'path' => drupal_get_path('module', 'workflow') . '/includes',
+    ),
+    'handlers' => array(
+      // argument handlers
+      'workflow_views_handler_argument_state' => array(
+        'parent' => 'views_handler_argument_node_type',
+      ),
+      // field handlers
+      'workflow_views_handler_field_sid' => array(
+        'parent' => 'views_handler_field_node',
+      ),
+      // filter handlers
+      'workflow_views_handler_filter_sid' => array(
+        'parent' => 'views_handler_filter_in_operator',
+      ),
+      // relationship handlers
+      // sort handlers
+    ),
+  );
+}
