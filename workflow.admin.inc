@@ -310,8 +310,8 @@ function workflow_edit_form_validate($form_id, $form_state) {
  * @see workflow_edit_form()
  */
 function workflow_edit_form_submit($form, &$form_state) {
-  workflow_update($form_state['values']['wid'], $form_state['values']['wf_name'], array_filter($form_state['values']['tab_roles']));
   workflow_update_transitions($form_state['values']['transitions']);
+  workflow_update($form_state['values']['wid'], $form_state['values']['wf_name'], array_filter($form_state['values']['tab_roles']));
   drupal_set_message(t('The workflow was updated.'));
   $form_state['redirect'] = 'admin/build/workflow';
 }
@@ -668,5 +668,6 @@ function theme_workflow_types_form($form) {
 function workflow_types_form_submit($form, &$form_state) {
   workflow_types_save($form_state['values']);
   drupal_set_message(t('The workflow mapping was saved.'));
+  menu_rebuild(); 
   $form_state['redirect'] = 'admin/build/workflow';
 }

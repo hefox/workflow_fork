@@ -990,7 +990,6 @@ function workflow_create($name) {
 function workflow_update($wid, $name, $tab_roles) {
   db_query("UPDATE {workflows} SET name = '%s', tab_roles = '%s' WHERE wid = %d", $name, implode(',', $tab_roles), $wid);
    // Workflow name change affects tabs (local tasks), so force menu rebuild.
-  cache_clear_all('*', 'cache_menu', TRUE);
   menu_rebuild();
 }
 
@@ -1390,7 +1389,7 @@ function workflow_hook_info() {
     );
   }
   if ($trigger_page) {
-    drupal_set_message(t('No transitions have been set up. To enable the assignment of actions, edit the workflow to assign permissions for roles to do transitions. After that is completed, transitions will appear here and you will be able to assign actions to them. The workflow must also be assigned to at least one content type.'));
+    drupal_set_message(t('Either no transitions have been set up or this workflow has not yet been assigned to a content type. To enable the assignment of actions, edit the workflow to assign permissions for roles to do transitions. After that is completed, transitions will appear here and you will be able to assign actions to them.'));
   }
 }
 
@@ -1400,7 +1399,7 @@ function workflow_hook_info() {
  * Work around loss of menu local task inheritance in Drupal 6.2.
  */
 function workflow_menu_alter(&$callbacks) {
-  if (module_exists('trigger')) {
+  if (module_exists('trigger') & isset($callbacks['admin/build/trigger/workflow'])) {
     $callbacks['admin/build/trigger/workflow']['access callback'] = 'trigger_access_check';
   }
 }
