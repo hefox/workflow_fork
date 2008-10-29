@@ -28,7 +28,8 @@ function workflow_schema() {
     'fields'      => array(
       'wid'       => array('type' => 'serial'),
       'name'      => array('type' => 'varchar', 'length' => '255', 'not null' => TRUE, 'default' => ''),
-      'tab_roles' => array('type' => 'varchar', 'length' => '60', 'not null' => TRUE, 'default' => '')),
+      'tab_roles' => array('type' => 'varchar', 'length' => '60', 'not null' => TRUE, 'default' => ''),
+      'options'   => array('type' => 'text', 'size' => 'big', 'not null' => FALSE, 'default' => '')),
     'primary key' => array('wid'),
   );
   $schema['workflow_type_map'] = array(
@@ -377,5 +378,16 @@ function workflow_update_5204() {
         COMMIT;");
       break;
   }
+  return $ret;
+}
+
+// Add a general data field for storing workflow options.
+function workflow_update_6100() {
+  $ret = array();
+  db_add_field($ret, 'workflows', 'options', array('type' => 'text', 'size' => 'big', 'not null' => FALSE, 'default' => ''));
+  // Seed existing workflows with the behavior of showing the comment field.
+  $default = serialize(array('comment_log_node' => 1, 'comment_log_tab' => 1));
+  $query_result = db_query("UPDATE {workflows} SET options = '%s'", $default);
+  $ret[] = array('success' => $query_result !== FALSE, 'query' => "UPDATE {workflows} SET options = '$default'");
   return $ret;
 }

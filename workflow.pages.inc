@@ -115,14 +115,16 @@ function theme_workflow_deleted_state($state_name) {
  *   Form definition array.
  */
 function workflow_tab_form($form_state, &$node, $wid, $states, $current) {
-  $form = array();
+  $form['#tab'] = TRUE;
   $choices = workflow_field_choices($node);
 
   $min = $states[$current] == t('(creation)') ? 1 : 2;
   // Only build form if user has possible target state(s).
   if (count($choices) >= $min) {
     $wid = workflow_get_workflow_for_type($node->type);
-    $name = check_plain(workflow_get_name($wid));
+    $workflow = workflow_load($wid);
+    $form['#wf'] = $workflow;
+    $name = check_plain($workflow->name);
     // See if scheduling information is present.
     if ($node->_workflow_scheduled_timestamp && $node->_workflow_scheduled_sid) {
       global $user;

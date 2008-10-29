@@ -375,14 +375,19 @@ function workflow_node_form(&$form, $form_state, $title, $name, $current, $choic
         '#default_value' => $scheduled ? (isset($form_state['values']['workflow_scheduled_hour']) ? $form_state['values']['workflow_scheduled_hour'] : $hours) : NULL,
       );
     }
-
+    if (isset($form['#tab'])) {
+      $determiner = 'comment_log_tab';
+    }
+    else {
+      $determiner = 'comment_log_node';
+    }
     $form['workflow']['workflow_comment'] = array(
-      '#type' => 'textarea',
+      '#type' => $form['#wf']->options[$determiner] ? 'textarea': 'hidden',
       '#title' => t('Comment'),
       '#description' => t('A comment to put in the workflow log.'),
       '#default_value' => $comment,
       '#rows' => 2,
-    );
+    );      
   }
 }
 
@@ -422,8 +427,8 @@ function workflow_form_alter(&$form, $form_state, $form_id) {
     if (count($choices) < $min) {
       return;
     }
-
-    $name = check_plain(workflow_get_name($wid));
+    $workflow = workflow_load($wid);
+    $form['#wf'] = $workflow;
 
     // If the current node state is not one of the choices, autoselect first choice.
     // We know all states in $choices are states that user has permission to
@@ -436,7 +441,7 @@ function workflow_form_alter(&$form, $form_state, $form_id) {
     if (sizeof($choices) > 1) {
       $form['workflow'] = array(
         '#type' => 'fieldset',
-        '#title' => $name,
+        '#title' => check_plain($workflow->name),
         '#collapsible' => TRUE,
         '#collapsed' => FALSE,
         '#weight' => 10,
@@ -445,9 +450,6 @@ function workflow_form_alter(&$form, $form_state, $form_id) {
 
     // See if scheduling information is present.
     if ($node->_workflow_scheduled_timestamp && $node->_workflow_scheduled_sid) {
-      if (isset($form_state['values']['_workflow_scheduled_sid'])) {
-        $foo = 'bar';
-      }
       // The default value should be the upcoming sid.
       $current = $node->_workflow_scheduled_sid;
       $timestamp = $node->_workflow_scheduled_timestamp;
@@ -783,7 +785,9 @@ function workflow_workflow($op, $old_state, $new_state, $node) {
  *   Object representing the workflow.
  */
 function workflow_load($wid) {
-  return db_fetch_object(db_query('SELECT * FROM {workflows} WHERE wid = %d', $wid));
+  $workflow = db_fetch_object(db_query('SELECT * FROM {workflows} WHERE wid = %d', $wid));
+  $workflow->options = unserialize($workflow->options);
+  return $workflow;
 }
 
 /**
@@ -964,7 +968,10 @@ function workflow_get_all() {
  *   The name of the workflow.
  */
 function workflow_create($name) {
-  $workflow = array('name' => $name);
+  $workflow = array(
+    'name' => $name,
+    'options' => serialize(array('comment_log_node' => 1, 'comment_log_tab' => 1)), 
+  );
   drupal_write_record('workflows', $workflow);
   workflow_state_save(array(
     'wid' => $workflow['wid'],
@@ -972,7 +979,6 @@ function workflow_create($name) {
     'sysid' => WORKFLOW_CREATION,
     'weight' => WORKFLOW_CREATION_DEFAULT_WEIGHT));
   // Workflow creation affects tabs (local tasks), so force menu rebuild.
-  cache_clear_all('*', 'cache_menu', TRUE);
   menu_rebuild();
   return $workflow['wid'];
 }
@@ -986,9 +992,13 @@ function workflow_create($name) {
  *   The name of the workflow.
  * @param $tab_roles
  *   Array of role IDs allowed to see the workflow tab.
+ * @param $options
+ *   Array of key-value pairs that constitute various settings for
+ *   this workflow. An example is whether to show the comment form
+ *   on the workflow tab page or not.
  */
-function workflow_update($wid, $name, $tab_roles) {
-  db_query("UPDATE {workflows} SET name = '%s', tab_roles = '%s' WHERE wid = %d", $name, implode(',', $tab_roles), $wid);
+function workflow_update($wid, $name, $tab_roles, $options) {
+  db_query("UPDATE {workflows} SET name = '%s', tab_roles = '%s', options = '%s' WHERE wid = %d", $name, implode(',', $tab_roles), serialize($options), $wid);
    // Workflow name change affects tabs (local tasks), so force menu rebuild.
   menu_rebuild();
 }

@@ -58,11 +58,11 @@ function workflow_add_form_validate($form, &$form_state) {
  */
 function workflow_add_form_submit($form, &$form_state) {
   $workflow_name = $form_state['values']['wf_name'];
-  workflow_create($workflow_name);
+  $wid = workflow_create($workflow_name);
   watchdog('workflow', 'Created workflow %name', array('%name' => $workflow_name));
   drupal_set_message(t('The workflow %name was created. You should now add states to your workflow.',
     array('%name' => $workflow_name)), 'status');
-  $form_state['redirect'] = 'admin/build/workflow';
+  $form_state['redirect'] = 'admin/build/workflow/state/'. $wid;
 }
 
 /**
@@ -180,6 +180,22 @@ function workflow_edit_form($form_state, $workflow) {
     '#title' => t('Workflow Name'),
     '#size' => '16',
     '#maxlength' => '254',
+  );
+  $form['comment'] = array(
+    '#type' => 'fieldset',
+    '#title' => t('Comment for Workflow Log'),
+  );
+  $form['comment']['comment_log_node'] = array(
+    '#type' => 'checkbox',
+    '#title' => t('Show a comment field in the workflow section of the editing form.'),
+    '#default_value' => $workflow->options['comment_log_node'],
+    '#description' => t("On the node editing form, a Comment form can be shown so that the person making the state change can record reasons for doing so. The comment is then included in the node's workflow history."),
+  );
+  $form['comment']['comment_log_tab'] = array(
+    '#type' => 'checkbox',
+    '#title' => t('Show a comment field in the workflow section of the workflow tab form.'),
+    '#default_value' => $workflow->options['comment_log_tab'],
+    '#description' => t("On the workflow tab, a Comment form can be shown so that the person making the state change can record reasons for doing so. The comment is then included in the node's workflow history."),
   );
   $form['tab'] = array(
     '#type' => 'fieldset',
@@ -311,7 +327,7 @@ function workflow_edit_form_validate($form_id, $form_state) {
  */
 function workflow_edit_form_submit($form, &$form_state) {
   workflow_update_transitions($form_state['values']['transitions']);
-  workflow_update($form_state['values']['wid'], $form_state['values']['wf_name'], array_filter($form_state['values']['tab_roles']));
+  workflow_update($form_state['values']['wid'], $form_state['values']['wf_name'], array_filter($form_state['values']['tab_roles']), array('comment_log_node' => $form_state['values']['comment_log_node'], 'comment_log_tab' => $form_state['values']['comment_log_tab']));
   drupal_set_message(t('The workflow was updated.'));
   $form_state['redirect'] = 'admin/build/workflow';
 }
@@ -484,7 +500,7 @@ function workflow_overview() {
     $links = array_merge($links, module_invoke_all('workflow_operations', 'workflow', $wid));
 
     $states = workflow_get_states($wid);
-    if (!module_exists('trigger')) {
+    if (!module_exists('trigger') || count($states) < 2) {
       unset($links['workflow_overview_actions']);
     }
 
