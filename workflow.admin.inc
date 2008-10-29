@@ -305,16 +305,16 @@ function workflow_edit_form_validate($form_id, $form_state) {
 
   // Make sure 'author' is checked for (creation) -> [something].
   $creation_id = _workflow_creation_state($wid);
-  if (is_array($form_state['values']['transitions'][$creation_id])) {
+  if (isset($form_state['values']['transitions'][$creation_id]) && is_array($form_state['values']['transitions'][$creation_id])) {
     foreach ($form_state['values']['transitions'][$creation_id] as $to => $roles) {
       if ($roles['author']) {
-        $author_has_permission = true;
+        $author_has_permission = TRUE;
         break;
       }
     }
   }
   $state_count = db_result(db_query("SELECT COUNT(sid) FROM {workflow_states} WHERE wid = %d", $wid));
-  if (!$author_has_permission && $state_count > 1) {
+  if (empty($author_has_permission) && $state_count > 1) {
     form_set_error('transitions', t('Please give the author permission to go from %creation to at least one state!',
       array('%creation' => '(creation)')));
   }
@@ -326,7 +326,9 @@ function workflow_edit_form_validate($form_id, $form_state) {
  * @see workflow_edit_form()
  */
 function workflow_edit_form_submit($form, &$form_state) {
-  workflow_update_transitions($form_state['values']['transitions']);
+  if (isset($form_state['values']['transitions'])) {
+    workflow_update_transitions($form_state['values']['transitions']);
+  }
   workflow_update($form_state['values']['wid'], $form_state['values']['wf_name'], array_filter($form_state['values']['tab_roles']), array('comment_log_node' => $form_state['values']['comment_log_node'], 'comment_log_tab' => $form_state['values']['comment_log_tab']));
   drupal_set_message(t('The workflow was updated.'));
   $form_state['redirect'] = 'admin/build/workflow';
