@@ -52,7 +52,7 @@ msgstr "%title を本当に削除しますか？　このワークフローに�
 
 #: workflow.admin.inc:89;596
 msgid "This action cannot be undone."
-msgstr "この操作は元に戻すことができません。"
+msgstr "この操作は元に戻すことができませんので、十分に注意して実行してください。"
 
 #: workflow.admin.inc:90;497;521;597
 msgid "Delete"
@@ -73,11 +73,11 @@ msgstr "投稿者"
 
 #: workflow.admin.inc:138
 msgid "From"
-msgstr ""
+msgstr "送信元"
 
 #: workflow.admin.inc:138
 msgid "To"
-msgstr ""
+msgstr "宛先"
 
 #: workflow.admin.inc:148
 msgid "%role may do these transitions:"
@@ -261,7 +261,7 @@ msgstr "コンテンツタイプにそれぞれ異なるワークフローを持
 
 #: workflow.admin.inc:652
 msgid "Post"
-msgstr "記事"
+msgstr "投稿"
 
 #: workflow.admin.inc:653
 #: workflow.pages.inc:82
@@ -503,7 +503,7 @@ msgstr "ワークフローの編集"
 
 #: workflow.module:56
 msgid "List"
-msgstr "一覧"
+msgstr "リスト"
 
 #: workflow.module:64
 msgid "Add workflow"
