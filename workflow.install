@@ -26,7 +26,7 @@ function workflow_uninstall() {
 function workflow_schema() {
   $schema['workflows'] = array(
     'fields'      => array(
-      'wid'       => array('type' => 'serial'),
+      'wid'       => array('type' => 'serial', 'not null' => TRUE),
       'name'      => array('type' => 'varchar', 'length' => '255', 'not null' => TRUE, 'default' => ''),
       'tab_roles' => array('type' => 'varchar', 'length' => '60', 'not null' => TRUE, 'default' => ''),
       'options'   => array('type' => 'text', 'size' => 'big', 'not null' => FALSE, 'default' => '')),
@@ -41,7 +41,7 @@ function workflow_schema() {
   );
   $schema['workflow_transitions'] = array(
     'fields' => array(
-      'tid'        => array('type' => 'serial'),
+      'tid'        => array('type' => 'serial', 'not null' => TRUE),
       'sid'        => array('type' => 'int', 'unsigned' => TRUE, 'not null' => TRUE, 'default' => 0, 'disp-width' => '10'),
       'target_sid' => array('type' => 'int', 'unsigned' => TRUE, 'not null' => TRUE, 'default' => 0, 'disp-width' => '10'),
       'roles'      => array('type' => 'varchar', 'length' => '255', 'not null' => FALSE)),
@@ -52,7 +52,7 @@ function workflow_schema() {
   );
   $schema['workflow_states'] = array(
     'fields' => array(
-      'sid'    => array('type' => 'serial'),
+      'sid'    => array('type' => 'serial', 'not null' => TRUE),
       'wid'    => array('type' => 'int', 'unsigned' => TRUE, 'not null' => TRUE, 'default' => 0, 'disp-width' => '10'),
       'state'  => array('type' => 'varchar', 'length' => '255', 'not null' => TRUE, 'default' => ''),
       'weight' => array('type' => 'int', 'size' => 'tiny', 'not null' => TRUE, 'default' => 0, 'disp-width' => '4'),
