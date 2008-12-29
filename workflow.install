@@ -391,3 +391,15 @@ function workflow_update_6100() {
   $ret[] = array('success' => $query_result !== FALSE, 'query' => "UPDATE {workflows} SET options = '$default'");
   return $ret;
 }
+
+// Tables upgraded from 5.x needs AUTOINCREMENT set.
+function workflow_update_6101() {
+  $ret = array();
+  db_drop_primary_key($ret, 'workflows');
+  db_change_field($ret, 'workflows', 'wid', 'wid', array('type' => 'serial', 'not null' => TRUE), array('primary key' => array('wid')));
+  db_drop_primary_key($ret, 'workflow_states');
+  db_change_field($ret, 'workflow_states', 'sid', 'sid', array('type' => 'serial', 'not null' => TRUE), array('primary key' => array('sid')));
+  db_drop_primary_key($ret, 'workflow_transitions');
+  db_change_field($ret, 'workflow_transitions', 'tid', 'tid', array('type' => 'serial', 'not null' => TRUE), array('primary key' => array('tid')));
+  return $ret;
+}
