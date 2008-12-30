@@ -467,11 +467,18 @@ function workflow_form_alter(&$form, $form_state, $form_id) {
 /**
  * Execute a transition (change state of a node).
  *
- * @param object $node
- * @param int $sid
- * @return int ID of new state.
+ * @param $node
+ * @param $sid
+ *   Target state ID.
+ * @param $comment
+ *   A comment for the node's workflow history.
+ * @param $force
+ *   If set to TRUE, workflow permissions will be ignored.
+ * 
+ * @return int
+ *   ID of new state.
  */
-function workflow_execute_transition($node, $sid, $comment = NULL) {
+function workflow_execute_transition($node, $sid, $comment = NULL, $force = FALSE) {
   global $user;
   $old_sid = workflow_node_current_state($node);
   if ($old_sid == $sid) {
@@ -488,7 +495,7 @@ function workflow_execute_transition($node, $sid, $comment = NULL) {
   }
 
   $tid = workflow_get_transition_id($old_sid, $sid);
-  if (!$tid) {
+  if (!$tid && !$force) {
       watchdog('workflow', 'Attempt to go to nonexistent transition (from %old to %new)', array('%old' => $old_sid, '%new' => $sid, WATCHDOG_ERROR));
       return;
   }
