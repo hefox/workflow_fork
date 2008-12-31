@@ -62,6 +62,7 @@ function workflow_add_form_submit($form, &$form_state) {
   watchdog('workflow', 'Created workflow %name', array('%name' => $workflow_name));
   drupal_set_message(t('The workflow %name was created. You should now add states to your workflow.',
     array('%name' => $workflow_name)), 'status');
+  $form_state['wid'] = $wid;
   $form_state['redirect'] = 'admin/build/workflow/state/'. $wid;
 }
 
@@ -422,7 +423,7 @@ function workflow_state_add_form_validate($form, &$form_state) {
  * @see workflow_state_add_form()
  */
 function workflow_state_add_form_submit($form, &$form_state) {
-  workflow_state_save($form_state['values']);
+  $form_state['sid'] = workflow_state_save($form_state['values']);
   if (array_key_exists('sid', $form_state['values'])) {
     drupal_set_message(t('The workflow state was updated.'));
   }
