@@ -395,11 +395,30 @@ function workflow_update_6100() {
 // Tables upgraded from 5.x needs AUTOINCREMENT set.
 function workflow_update_6101() {
   $ret = array();
-  db_drop_primary_key($ret, 'workflows');
-  db_change_field($ret, 'workflows', 'wid', 'wid', array('type' => 'serial', 'not null' => TRUE), array('primary key' => array('wid')));
-  db_drop_primary_key($ret, 'workflow_states');
-  db_change_field($ret, 'workflow_states', 'sid', 'sid', array('type' => 'serial', 'not null' => TRUE), array('primary key' => array('sid')));
-  db_drop_primary_key($ret, 'workflow_transitions');
-  db_change_field($ret, 'workflow_transitions', 'tid', 'tid', array('type' => 'serial', 'not null' => TRUE), array('primary key' => array('tid')));
+  $workflows = $workflow_states = $workflow_transitions = FALSE;
+  // Test to see if the autoincrement attribute is present.
+  switch ($GLOBALS['db_type']) {
+    case 'mysqli':
+    case 'mysql':  
+      $workflows = db_result(db_query("SHOW COLUMNS FROM workflows WHERE field = 'wid' and extra REGEXP 'auto_increment'"));
+      $workflow_states = db_result(db_query("SHOW COLUMNS FROM workflow_states WHERE field = 'sid' and extra REGEXP 'auto_increment'"));
+      $workflow_transitions = db_result(db_query("SHOW COLUMNS FROM workflow_transitions WHERE field = 'tid' and extra REGEXP 'auto_increment'"));
+      break;
+    case 'pgsql':
+      // Not sure how determine if a PostgreSQL field has a sequence.
+      break;
+  }
+  if ($workflows === FALSE) {
+    db_drop_primary_key($ret, 'workflows');
+    db_change_field($ret, 'workflows', 'wid', 'wid', array('type' => 'serial', 'not null' => TRUE), array('primary key' => array('wid')));
+  }
+  if ($workflow_states === FALSE) {
+    db_drop_primary_key($ret, 'workflow_states');
+    db_change_field($ret, 'workflow_states', 'sid', 'sid', array('type' => 'serial', 'not null' => TRUE), array('primary key' => array('sid')));
+  }
+  if ($workflow_transitions === FALSE) {
+    db_drop_primary_key($ret, 'workflow_transitions');
+    db_change_field($ret, 'workflow_transitions', 'tid', 'tid', array('type' => 'serial', 'not null' => TRUE), array('primary key' => array('tid')));
+  }
   return $ret;
 }

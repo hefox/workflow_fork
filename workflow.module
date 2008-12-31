@@ -497,7 +497,7 @@ function workflow_execute_transition($node, $sid, $comment = NULL, $force = FALS
       $result = module_invoke_all('workflow', 'transition pre', $old_sid, $sid, $node);
       _workflow_write_history($node, $sid, $comment);
     }
-      $result = module_invoke_all('workflow', 'transition post', $old_sid, $sid, $node);
+    $result = module_invoke_all('workflow', 'transition post', $old_sid, $sid, $node);
     return;
   }
 
