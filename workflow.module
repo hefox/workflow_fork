@@ -112,11 +112,15 @@ function workflow_menu() {
  */
 function workflow_node_tab_access($node = NULL) {
   global $user;
+  $wid = workflow_get_workflow_for_type($node->type);
+  if ($wid === FALSE) {
+    // No workflow associated with this node type.
+    return FALSE;
+  }
   $roles = array_keys($user->roles);
   if ($node->uid == $user->uid) {
     $roles = array_merge(array('author'), $roles);
   }
-  $wid = workflow_get_workflow_for_type($node->type);
   $workflow = db_fetch_object(db_query("SELECT * FROM {workflows} WHERE wid = %d", $wid));
   $allowed_roles = $workflow->tab_roles ? explode(',', $workflow->tab_roles) : array();
 
