@@ -8,6 +8,7 @@
 
 define('WORKFLOW_CREATION', 1);
 define('WORKFLOW_CREATION_DEFAULT_WEIGHT', -50);
+define('WORKFLOW_DELETION', 0);
 define('WORKFLOW_ARROW', '&#8594;');
 
 /**
@@ -234,6 +235,8 @@ function workflow_nodeapi(&$node, $op, $teaser = NULL, $page = NULL) {
     case 'delete':
       db_query("DELETE FROM {workflow_node} WHERE nid = %d", $node->nid);
       _workflow_write_history($node, WORKFLOW_DELETION, t('Node deleted'));
+      // Delete any scheduled transitions for this node.
+      db_query("DELETE FROM {workflow_scheduled_transition} WHERE nid = %d", $node->nid);
       break;
   }
 }
