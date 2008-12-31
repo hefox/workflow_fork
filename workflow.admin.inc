@@ -608,7 +608,7 @@ function workflow_state_delete_form_submit($form, &$form_state) {
   $states = workflow_get_states($form_state['values']['wid']);
   $state_name = $states[$form_state['values']['sid']];
   if ($form_state['values']['confirm'] == 1) {
-    workflow_state_delete($form_state['values']['sid']);
+    workflow_state_delete($form_state['values']['sid'], $form_state['values']['new_sid']);
     watchdog('workflow', 'Deleted workflow state %name', array('%name' => $state_name));
     drupal_set_message(t('The workflow state %name was deleted.', array('%name' => $state_name)));
   }
