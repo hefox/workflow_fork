@@ -1336,7 +1336,7 @@ function workflow_get_roles() {
 }
 
 /**
- * Implementation of hook_cron
+ * Implementation of hook_cron().
  */
 function workflow_cron() {
   $clear_cache = FALSE;
@@ -1356,6 +1356,12 @@ function workflow_cron() {
 
       watchdog('content', '%type: scheduled transition of %title.', array('%type' => t($node->type), '%title' => $node->title), WATCHDOG_NOTICE, l(t('view'), 'node/'. $node->nid));
       $clear_cache = TRUE;
+    }
+    else {
+      // Node is not in the same state it was when the transition
+      // was scheduled. Defer to the node's current state and
+      // abandon the scheduled transition.
+      db_query('DELETE FROM {workflow_scheduled_transition} WHERE nid = %d', $node->nid);
     }
   }
 
