@@ -1057,12 +1057,15 @@ function workflow_get_states($wid = NULL) {
   $states = array();
   if (isset($wid)) {
     $result = db_query("SELECT sid, state FROM {workflow_states} WHERE wid = %d AND status = 1 ORDER BY weight, sid", $wid);
+    while ($data = db_fetch_object($result)) {
+      $states[$data->sid] = $data->state;
+    }
   }
   else {
-    $result = db_query("SELECT sid, state FROM {workflow_states} WHERE status = 1 ORDER BY sid");
-  }
-  while ($data = db_fetch_object($result)) {
-    $states[$data->sid] = $data->state;
+    $result = db_query("SELECT ws.sid, ws.state, w.name FROM {workflow_states} ws INNER JOIN {workflows} w ON ws.wid = w.wid WHERE status = 1 ORDER BY sid");
+    while ($data = db_fetch_object($result)) {
+      $states[$data->sid] = $data->name .': '. $data->state;
+    }
   }
 
   return $states;
