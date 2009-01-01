@@ -1035,6 +1035,8 @@ function workflow_deletewf($wid) {
   }
   db_query("DELETE FROM {workflow_type_map} WHERE wid = %d", $wid);
   db_query('DELETE FROM {workflows} WHERE wid = %d', $wid);
+  // Notify any interested modules.
+  module_invoke_all('workflow', 'workflow delete', $wid, NULL, NULL);
   // Workflow deletion affects tabs (local tasks), so force menu rebuild.
   cache_clear_all('*', 'cache_menu', TRUE);
   menu_rebuild();
@@ -1157,6 +1159,8 @@ function workflow_state_delete($sid, $new_sid = NULL) {
 
   // Delete the state.
   db_query("UPDATE {workflow_states} SET status = 0 WHERE sid = %d", $sid);
+  // Notify interested modules.
+  module_invoke_all('workflow', 'state delete', $sid, NULL, NULL);
 }
 
 /**
@@ -1171,6 +1175,8 @@ function workflow_transition_delete($tid) {
     workflow_actions_remove($tid, $aid);
   }
   db_query("DELETE FROM {workflow_transitions} WHERE tid = %d", $tid);
+  // Notify interested modules.
+  module_invoke_all('workflow', 'transition delete', $tid, NULL, NULL);
 }
 
 /**
