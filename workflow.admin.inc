@@ -151,7 +151,7 @@ function theme_workflow_permissions($header, $all) {
       $output .= theme('table', $header, $value['transitions']) . '<p></p>';
     }
     else {
-      $output .= '<table><tbody><tr class="even"><td>' . t('None') . '</td><td></tr></tbody></table><p></p>';
+      $output .= '<table><tbody><tr class="odd"><td>' . t('None') . '</td><td></tr></tbody></table><p></p>';
     }
   }
 
