@@ -455,8 +455,11 @@ function workflow_form_alter(&$form, $form_state, $form_id) {
       );
     }
 
+    $timestamp = NULL;
+    $comment = '';
+
     // See if scheduling information is present.
-    if ($node->_workflow_scheduled_timestamp && $node->_workflow_scheduled_sid) {
+    if (isset($node->_workflow_scheduled_timestamp) && isset($node->_workflow_scheduled_sid)) {
       // The default value should be the upcoming sid.
       $current = $node->_workflow_scheduled_sid;
       $timestamp = $node->_workflow_scheduled_timestamp;
@@ -467,7 +470,7 @@ function workflow_form_alter(&$form, $form_state, $form_id) {
       $comment = $form_state['values']['workflow_comment'];
     }
 
-    workflow_node_form($form, $form_state, $name, $name, $current, $choices, $timestamp, $comment);
+    workflow_node_form($form, $form_state, '', '', $current, $choices, $timestamp, $comment);
   }
 }
 
@@ -708,9 +711,13 @@ function workflow_field_choices($node) {
  *   The ID of the current state.
  */
 function workflow_node_current_state($node) {
-  $sid = db_result(db_query('SELECT sid FROM {workflow_node} WHERE nid = %d', $node->nid));
+  $sid = FALSE;
 
-  if (!$sid) {
+  if (!empty($node->nid)) {
+    $sid = db_result(db_query('SELECT sid FROM {workflow_node} WHERE nid = %d', $node->nid));
+  }
+
+  if (!$sid && !empty($node->type)) {
     // No current state. Use creation state.
     $wid = workflow_get_workflow_for_type($node->type);
     $sid = _workflow_creation_state($wid);

@@ -29,7 +29,7 @@ function workflow_schema() {
       'wid'       => array('type' => 'serial', 'not null' => TRUE),
       'name'      => array('type' => 'varchar', 'length' => '255', 'not null' => TRUE, 'default' => ''),
       'tab_roles' => array('type' => 'varchar', 'length' => '60', 'not null' => TRUE, 'default' => ''),
-      'options'   => array('type' => 'text', 'size' => 'big', 'not null' => FALSE, 'default' => '')),
+      'options'   => array('type' => 'text', 'size' => 'big', 'not null' => FALSE)),
     'primary key' => array('wid'),
   );
   $schema['workflow_type_map'] = array(
@@ -75,7 +75,7 @@ function workflow_schema() {
   );
   $schema['workflow_node_history'] = array(
     'fields' => array(
-      'hid'     => array('type' => 'serial'),
+      'hid'     => array('type' => 'serial', 'not null' => TRUE),
       'nid'     => array('type' => 'int', 'unsigned' => TRUE, 'not null' => TRUE, 'default' => 0, 'disp-width' => '10'),
       'old_sid' => array('type' => 'int', 'unsigned' => TRUE, 'not null' => TRUE, 'default' => 0, 'disp-width' => '10'),
       'sid'     => array('type' => 'int', 'unsigned' => TRUE, 'not null' => TRUE, 'default' => 0, 'disp-width' => '10'),
@@ -384,7 +384,7 @@ function workflow_update_5204() {
 // Add a general data field for storing workflow options.
 function workflow_update_6100() {
   $ret = array();
-  db_add_field($ret, 'workflows', 'options', array('type' => 'text', 'size' => 'big', 'not null' => FALSE, 'default' => ''));
+  db_add_field($ret, 'workflows', 'options', array('type' => 'text', 'size' => 'big', 'not null' => FALSE));
   // Seed existing workflows with the behavior of showing the comment field.
   $default = serialize(array('comment_log_node' => 1, 'comment_log_tab' => 1));
   $query_result = db_query("UPDATE {workflows} SET options = '%s'", $default);

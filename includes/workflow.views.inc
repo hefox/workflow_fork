@@ -32,7 +32,7 @@ function workflow_views_data() {
     'title' => t('State weight'), // Appears in views UI.
     'help' => t('The weight of the current workflow state that the node is in.'),
     'sort' => array(
-      'handler' => 'views_handler_sort_numeric',
+      'handler' => 'views_handler_sort',
     ),
   );
 
