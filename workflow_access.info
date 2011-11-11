@@ -2,4 +2,4 @@ name = Workflow access
 description = Content access control based on workflows and roles.
 dependencies[] = workflow
 package = Workflow
-core = 6.x
+core = 7.x

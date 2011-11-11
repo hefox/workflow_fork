@@ -1,5 +1,5 @@
 <?php
-
+// $Id$
 /**
  * @file
  * Provide user interface for changing workflow state.
@@ -9,67 +9,76 @@
  * Menu callback. Display workflow summary of a node.
  */
 function workflow_tab_page($node = NULL) {
-  drupal_set_title(check_plain($node->title));
+  drupal_set_title($node->title);
   $wid = workflow_get_workflow_for_type($node->type);
   $states_per_page = variable_get('workflow_states_per_page', 20);
   $result = db_query("SELECT sid, state FROM {workflow_states} WHERE status = 1 ORDER BY sid");
-  while ($data = db_fetch_object($result)) {
-    $states[$data->sid] = $data->state;
+  foreach ($result as $data) {
+    $states[$data->sid] = check_plain(t($data->state));
   }
   $deleted_states = array();
   $result = db_query("SELECT sid, state FROM {workflow_states} WHERE status = 0 ORDER BY sid");
-  while ($data = db_fetch_object($result)) {
-    $deleted_states[$data->sid] = $data->state;
+  foreach ($result as $data) {
+    $deleted_states[$data->sid] = check_plain(t($data->state));
   }
   $current = workflow_node_current_state($node);
-
   // theme_workflow_current_state() must run state through check_plain().
-  $output = '<p>'. t('Current state: !state', array('!state' => theme('workflow_current_state', $states[$current]))) . "</p>\n";
-  $output .= drupal_get_form('workflow_tab_form', $node, $wid, $states, $current);
-
-  $result = pager_query("SELECT h.*, u.name FROM {workflow_node_history} h LEFT JOIN {users} u ON h.uid = u.uid WHERE nid = %d ORDER BY hid DESC", $states_per_page, 0, NULL, $node->nid);
+  $current_state = theme('workflow_current_state', array('state_name' => $states[$current]));
+  $output = '<p>' . t('Current state: !state', array('!state' => $current_state)) . "</p>\n";
+  $output .= drupal_render(drupal_get_form('workflow_tab_form', $node, $wid, $states, $current));
+  $pager_query = db_select('workflow_node_history', 'h')->extend('PagerDefault');
+  $pager_query->leftJoin('users', 'u', 'h.uid = u.uid');
+  $pager_query->condition('nid', $node->nid)->orderBy('hid', 'DESC')->limit($states_per_page);
+  $pager_query->fields('h')->addField('u', 'name');
+  $result = $pager_query->execute();
   $rows = array();
-  while ($history = db_fetch_object($result)) {
+  foreach ($result as $history) {
     if ($history->sid == $current && !isset($deleted_states[$history->sid]) && !isset($current_themed)) {
       // Theme the current state differently so it stands out.
-      $state_name = theme('workflow_current_state', $states[$history->sid]);
+      $state_name = theme('workflow_current_state',  array('state_name' => $states[$history->sid]));
       // Make a note that we have themed the current state; other times in the history
       // of this node where the node was in this state do not need to be specially themed.
       $current_themed = TRUE;
     }
     elseif (isset($deleted_states[$history->sid])) {
       // The state has been deleted, but we include it in the history.
-      $state_name = theme('workflow_deleted_state', $deleted_states[$history->sid]);
+      $state_name = theme('workflow_deleted_state', array('deleted_state' => $deleted_states[$history->sid]));
       $footer_needed = TRUE;
     }
     else {
       // Regular state.
-      $state_name = check_plain($states[$history->sid]);
+      $state_name = check_plain(t($states[$history->sid]));
     }
 
     if (isset($deleted_states[$history->old_sid])) {
-      $old_state_name = theme('workflow_deleted_state', $deleted_states[$history->old_sid]);
+      $old_state_name = theme('workflow_deleted_state', array('deleted_state' => $deleted_states[$history->old_sid]));
       $footer_needed = TRUE;
     }
     else {
-      $old_state_name = check_plain($states[$history->old_sid]);
+      $old_state_name = check_plain(t($states[$history->old_sid]));
     }
-    $rows[] = theme('workflow_history_table_row', $history, $old_state_name, $state_name);
+    $rows[] = theme('workflow_history_table_row', array( 'history' => $history, 'old_state_name' => $old_state_name, 'state_name' => $state_name ));
   }
-  $output .= theme('workflow_history_table', $rows, !empty($footer_needed));
-  $output .= theme('pager', $states_per_page);
+  $output .= theme('workflow_history_table', array('rows' => $rows, 'footer' => !empty($footer_needed)));
+  $output .= theme('pager', array('tags' => $states_per_page));
   return $output;
 }
 
 /*
  * Theme one workflow history table row.
+ *
+ * $old_state_name and $state_name must be run through check_plain(t()) prior
+ * to calling this theme function.
  */
-function theme_workflow_history_table_row($history, $old_state_name, $state_name) {
+function theme_workflow_history_table_row($variables) {
+  $old_state_name = $variables['old_state_name'];
+  $state_name = $variables['state_name'];
+  $history = $variables['history'];
   return array(
     format_date($history->stamp),
     $old_state_name,
     $state_name,
-    theme('username', $history),
+    theme('username', array('account' => $history)),
     filter_xss($history->comment, array('a', 'em', 'strong')),
   );
 }
@@ -77,8 +86,11 @@ function theme_workflow_history_table_row($history, $old_state_name, $state_name
 /*
  * Theme entire workflow history table.
  */
-function theme_workflow_history_table($rows, $footer) {
-  $output = theme('table', array(t('Date'), t('Old State'), t('New State'), t('By'), t('Comment')), $rows, array('class' => 'workflow_history'), t('Workflow History'));
+function theme_workflow_history_table($variables) {
+  $rows = $variables['rows'];
+  $footer = $variables['footer'];
+  $headers = array(t('Date'), t('Old State'), t('New State'), t('By'), t('Comment'));
+  $output = theme('table', array('header' => $headers, 'rows' => $rows, 'caption' => t('Workflow History')));
   if ($footer) {
     $output .= t('*State is no longer available.');
   }
@@ -88,15 +100,15 @@ function theme_workflow_history_table($rows, $footer) {
 /**
  * Theme the current state in the workflow history table.
  */
-function theme_workflow_current_state($state_name) {
-  return '<strong>'. check_plain($state_name) .'</strong>';
+function theme_workflow_current_state($variables) {
+  return '<strong>' . check_plain(t($variables['state_name'])) . '</strong>';
 }
 
 /**
  * Theme a deleted state in the workflow history table.
  */
 function theme_workflow_deleted_state($state_name) {
-  return check_plain($state_name) .'*';
+  return check_plain(t($state_name)) . '*';
 }
 
 /**
@@ -113,21 +125,22 @@ function theme_workflow_deleted_state($state_name) {
  * @return
  *   Form definition array.
  */
-function workflow_tab_form($form_state, &$node, $wid, $states, $current) {
+function workflow_tab_form($form_id, $form_state, $node, $wid, $states, $current) {
   $form['#tab'] = TRUE;
   $choices = workflow_field_choices($node);
-
   $min = $states[$current] == t('(creation)') ? 1 : 2;
   // Only build form if user has possible target state(s).
   if (count($choices) >= $min) {
     $wid = workflow_get_workflow_for_type($node->type);
     $workflow = workflow_load($wid);
     $form['#wf'] = $workflow;
-    $name = check_plain($workflow->name);
+    $name = check_plain((t($workflow->name)));
+    $timestamp = '';
+    $comment = '';
     // See if scheduling information is present.
-    if ($node->_workflow_scheduled_timestamp && $node->_workflow_scheduled_sid) {
+    if (!empty($node->_workflow_scheduled_timestamp) && !empty($node->_workflow_scheduled_sid)) {
       global $user;
-      if (variable_get('configurable_timezones', 1) && $user->uid && strlen($user->timezone)) {
+      if (variable_get('configurable_timezones', 1) && $user->uid && drupal_strlen($user->timezone)) {
         $timezone = $user->timezone;
       }
       else {
@@ -138,18 +151,16 @@ function workflow_tab_form($form_state, &$node, $wid, $states, $current) {
       $timestamp = $node->_workflow_scheduled_timestamp;
       $comment = $node->_workflow_scheduled_comment;
     }
-
     // Include the same form elements here that are included on a
     // regular node editing page. $form is modified by reference.
-    workflow_node_form($form, $form_state, t('Change %s state', array('%s' => $name)), $name, $current, $choices, $timestamp, $comment);
-
+    workflow_node_form($form, $form_state, t('Change @name state', array('@name' => $name)), $name, $current, $choices, $timestamp, $comment);
     $form['node'] = array(
       '#type' => 'value',
       '#value' => $node,
     );
     $form['submit'] = array(
       '#type' => 'submit',
-      '#value' => t('Submit')
+      '#value' => t('Update workflow'),
     );
   }
   return $form;
@@ -158,20 +169,26 @@ function workflow_tab_form($form_state, &$node, $wid, $states, $current) {
 /**
  * Submit handler for the form on the workflow tab.
  *
- * @see workflow_tab_form
+ * @see workflow_tab_form()
  */
 function workflow_tab_form_submit($form, &$form_state) {
   // The entire node object was stashed in the form.
   $node = $form_state['values']['node'];
-  $node->workflow = $form_state['values']['workflow'];
-  $node->workflow_comment = $form_state['values']['workflow_comment'];
-  $node->workflow_scheduled = $form_state['values']['workflow_scheduled'];
-  $node->workflow_scheduled_date = $form_state['values']['workflow_scheduled_date'];
-  $node->workflow_scheduled_hour = $form_state['values']['workflow_scheduled_hour'];
-
+  if (isset($form_state['values']['workflow'])) {
+    $node->workflow = $form_state['values']['workflow'];
+    $node->workflow_comment = $form_state['values']['workflow_comment'];
+    if (!empty($form_state['values']['workflow_scheduled'])) {
+      $node->workflow_scheduled = $form_state['values']['workflow_scheduled'];
+    }
+    if (!empty($form_state['values']['workflow_scheduled_date'])) {
+      $node->workflow_scheduled_date = $form_state['values']['workflow_scheduled_date'];
+    }
+    if (!empty($form_state['values']['workflow_scheduled_hour'])) {
+      $node->workflow_scheduled_hour = $form_state['values']['workflow_scheduled_hour'];
+    }
+  }
   // Call node_save() to make sure any handlers that use the
   // new workflow values will see them.
   node_save($node);
-
   $form_state['redirect'] = 'node/' . $node->nid;
 }

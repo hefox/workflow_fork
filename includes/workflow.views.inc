@@ -1,4 +1,5 @@
 <?php
+// $Id$
 /**
  * @file
  * Provide views data and handler information for workflow.module.
@@ -13,7 +14,7 @@
  */
 
 /**
- * Implementation of hook_views_data().
+ * Implements hook_views_data().
  */
 function workflow_views_data() {
   $data['workflow_states']['table']['group']  = t('Workflow');
@@ -42,7 +43,7 @@ function workflow_views_data() {
     'field' => array(
       'handler' => 'views_handler_field',
       'click sortable' => TRUE,
-     ),
+    ),
   );
 
   $data['workflow_node']['table']['group']  = t('Workflow');
@@ -62,11 +63,13 @@ function workflow_views_data() {
     'field' => array(
       'handler' => 'workflow_views_handler_field_sid',
       'click sortable' => TRUE,
-     ),
+    ),
     'argument' => array(
       'handler' => 'views_handler_argument_numeric',
       'click sortable' => TRUE,
       'numeric' => TRUE,
+      'name table' => 'workflow_states',
+      'name field' => 'state',
     ),
     'filter' => array(
       'handler' => 'workflow_views_handler_filter_sid',
@@ -91,10 +94,27 @@ function workflow_views_data() {
     'field' => array(
       'handler' => 'workflow_views_handler_field_sid',
       'click sortable' => TRUE,
-     ),
+    ),
     'filter' => array(
       'handler' => 'workflow_views_handler_filter_sid',
       'numeric' => TRUE,
+    ),
+  );
+
+  // time
+  $data['workflow_node']['stamp'] = array(
+    'title' => t('Current time'), // Appears in views UI.
+    'help' => t('The time at which the node moved to the current state.'),
+    'field' => array(
+      'handler' => 'views_handler_field_date',
+      'click sortable' => TRUE,
+    ),
+    'filter' => array(
+      'handler' => 'views_handler_filter_date',
+      'numeric' => TRUE,
+    ),
+    'sort' => array(
+      'handler' => 'views_handler_sort_date',
     ),
   );
 
@@ -105,7 +125,7 @@ function workflow_views_data() {
     'field' => array(
       'handler' => 'views_handler_field_date',
       'click sortable' => TRUE,
-     ),
+    ),
     'filter' => array(
       'handler' => 'views_handler_filter_date',
       'numeric' => TRUE,
@@ -122,7 +142,7 @@ function workflow_views_data() {
     'field' => array(
       'handler' => 'views_handler_field_xss',
       'click sortable' => TRUE,
-     ),
+    ),
     'filter' => array(
       'handler' => 'views_handler_filter_string',
       'numeric' => TRUE,
@@ -146,7 +166,7 @@ function workflow_views_data() {
     'field' => array(
       'handler' => 'workflow_views_handler_field_sid',
       'click sortable' => TRUE,
-     ),
+    ),
     'filter' => array(
       'handler' => 'workflow_views_handler_filter_sid',
       'numeric' => TRUE,
@@ -160,7 +180,7 @@ function workflow_views_data() {
     'field' => array(
       'handler' => 'views_handler_field_date',
       'click sortable' => TRUE,
-     ),
+    ),
     'filter' => array(
       'handler' => 'views_handler_filter_date',
       'numeric' => TRUE,
@@ -177,43 +197,15 @@ function workflow_views_data() {
     'field' => array(
       'handler' => 'views_handler_field_xss',
       'click sortable' => TRUE,
-     ),
+    ),
     'filter' => array(
       'handler' => 'views_handler_filter_string',
       'numeric' => TRUE,
     ),
   );
-
   return $data;
 }
 
 /**
  * @}
  */
-
-/**
- * Implementation of hook_views_handlers().
- */
-function workflow_views_handlers() {
-  return array(
-    'info' => array(
-      'path' => drupal_get_path('module', 'workflow') . '/includes',
-    ),
-    'handlers' => array(
-      // argument handlers
-      'workflow_views_handler_argument_state' => array(
-        'parent' => 'views_handler_argument_node_type',
-      ),
-      // field handlers
-      'workflow_views_handler_field_sid' => array(
-        'parent' => 'views_handler_field_node',
-      ),
-      // filter handlers
-      'workflow_views_handler_filter_sid' => array(
-        'parent' => 'views_handler_filter_in_operator',
-      ),
-      // relationship handlers
-      // sort handlers
-    ),
-  );
-}

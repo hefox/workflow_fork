@@ -1,26 +1,30 @@
 <?php
+// $Id$
+/**
+ * @file
+ * Install, update and uninstall functions for the workflow module.
+ *
+ */
 
 /**
- * Implementation of hook_install().
+ * Implements hook_install().
  */
 function workflow_install() {
-  drupal_install_schema('workflow');
 }
 
 /**
- * Implementation of hook_uninstall().
+ * Implements hook_uninstall().
  */
 function workflow_uninstall() {
   variable_del('workflow_states_per_page');
   // Delete type-workflow mapping variables.
-  foreach (node_get_types() as $type => $name) {
-    variable_del('workflow_'. $type);
+  foreach (node_type_get_types() as $type => $name) {
+    variable_del('workflow_' . $type);
   }
-  drupal_uninstall_schema('workflow');
 }
 
 /**
- * Implementation of hook_schema().
+ * Implements hook_schema().
  */
 function workflow_schema() {
   $schema['workflows'] = array(
@@ -95,10 +99,8 @@ function workflow_schema() {
     'indexes' => array(
       'nid' => array('nid', 'sid')),
   );
-
   return $schema;
 }
-
 
 // Introduce workflow_node_history table so workflow_node is joinable for views.module.
 function workflow_update_1() {
@@ -211,13 +213,13 @@ function workflow_update_4() {
 
 // Add stamp column in workflow_node to ease JOIN with history table. Needed for Views.
 function workflow_update_5() {
-   $ret[] = update_sql("ALTER TABLE {workflow_node} ADD stamp int(10) unsigned AFTER uid");
-   $sql = "SELECT MAX(stamp) AS stamp, nid FROM {workflow_node_history} GROUP BY nid";
-   $result = db_query($sql);
-   while ($row = db_fetch_object($result)) {
-     $ret[] = update_sql("UPDATE {workflow_node} SET stamp = $row->stamp WHERE nid = $row->nid");
-   }
-   return $ret;
+  $ret[] = update_sql("ALTER TABLE {workflow_node} ADD stamp int(10) unsigned AFTER uid");
+  $sql = "SELECT MAX(stamp) AS stamp, nid FROM {workflow_node_history} GROUP BY nid";
+  $result = db_query($sql);
+  foreach ($result as $row) {
+    $ret[] = update_sql("UPDATE {workflow_node} SET stamp = $row->stamp WHERE nid = $row->nid");
+  }
+  return $ret;
 }
 
 // Helper function to fix sequence table names.
@@ -263,10 +265,8 @@ QUERY
 CREATE INDEX {workflow_scheduled_transition}_nid_idx ON {workflow_scheduled_transition}(nid);
 QUERY
       );
-
-     break;
+    break;
   }
-
   return $ret;
 }
 
@@ -282,8 +282,8 @@ function workflow_update_5200() {
         $result = db_query("SELECT * FROM {workflow_actions}");
         if ($result) {
           $success = FALSE;
-          while ($data = db_fetch_object($result)) {
-            $success = db_query("INSERT INTO {actions_assignments} (hook, op, aid, weight) VALUES ('%s', '%s', '%s', %d)", 'workflow', 'workflow-'. $data->tid, $data->aid, $data->weight);
+          foreach ($result as $data) {
+            $success = db_query("INSERT INTO {actions_assignments} (hook, op, aid, weight) VALUES ('%s', '%s', '%s', %d)", 'workflow', 'workflow-' . $data->tid, $data->aid, $data->weight);
           }
         }
         else {
@@ -340,7 +340,7 @@ function workflow_update_5203() {
   $ret = array();
   if (module_exists('actions')) {
     $result = db_query("SELECT hook, op, aid, weight FROM {actions_assignments} WHERE hook = 'workflow'");
-    while ($data = db_fetch_object($result)) {
+    foreach ($result as $data) {
       $op_parts = explode('-', $data->op);
       // The ops we have to update have only two parts, e.g., workflow-35.
       if (count($op_parts) == 3) {
@@ -398,10 +398,10 @@ function workflow_update_6101() {
   // Test to see if the autoincrement attribute is present.
   switch ($GLOBALS['db_type']) {
     case 'mysqli':
-    case 'mysql':  
-      $workflows = db_result(db_query("SHOW COLUMNS FROM workflows WHERE field = 'wid' and extra REGEXP 'auto_increment'"));
-      $workflow_states = db_result(db_query("SHOW COLUMNS FROM workflow_states WHERE field = 'sid' and extra REGEXP 'auto_increment'"));
-      $workflow_transitions = db_result(db_query("SHOW COLUMNS FROM workflow_transitions WHERE field = 'tid' and extra REGEXP 'auto_increment'"));
+    case 'mysql':
+      $workflows = db_result(db_query("SHOW COLUMNS FROM {workflows} WHERE field = 'wid' and extra REGEXP 'auto_increment'"));
+      $workflow_states = db_result(db_query("SHOW COLUMNS FROM {workflow_states} WHERE field = 'sid' and extra REGEXP 'auto_increment'"));
+      $workflow_transitions = db_result(db_query("SHOW COLUMNS FROM {workflow_transitions} WHERE field = 'tid' and extra REGEXP 'auto_increment'"));
       break;
     case 'pgsql':
       // Not sure how determine if a PostgreSQL field has a sequence.

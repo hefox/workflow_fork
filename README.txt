@@ -5,7 +5,8 @@ Name: Workflow Module
 Author: John VanDyk
 Maintainers: Mark Fredrickson <mark.m.fredrickson at gmail dot com>
              John VanDyk drupal.org/user/2375
-Drupal: 6
+             Bastlynn http://drupal.org/user/275249
+Drupal: 7
 ********************************************************************
 DESCRIPTION:
 

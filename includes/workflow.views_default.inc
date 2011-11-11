@@ -1,10 +1,14 @@
 <?php
-
+// $Id$
 /**
  * @file
  * View for listing nodes by workflow state.
  */
 
+/**
+ * @todo Please document this function.
+ * @see http://drupal.org/node/1354
+ */
 function workflow_views_default_views() {
   $view = new view;
   $view->name = 'workflow_summary';
