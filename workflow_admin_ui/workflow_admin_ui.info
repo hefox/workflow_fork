@@ -1,4 +1,4 @@
-name = Workflow administrative UI
+name = Workflow UI
 description = "Provides administrative UI for workflow."
 package = Workflow
 dependencies[] = workflow
