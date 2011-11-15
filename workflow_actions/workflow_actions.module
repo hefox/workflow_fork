@@ -14,7 +14,7 @@
  */
 function workflow_actions_help($path, $arg) {
   switch ($path) {
-    case 'admin/build/trigger/workflow':
+    case 'admin/structure/trigger/workflow':
       return t('Use this page to set actions to happen when transitions occur. ' .
         'To configure actions, use the <a href="@link">actions settings page</a>.',
           array('@link' => url('admin/settings/actions')));
@@ -28,8 +28,8 @@ function workflow_actions_help($path, $arg) {
  * Work around loss of menu local task inheritance in Drupal 6.2.
  */
 function workflow_actions_menu_alter(&$callbacks) {
-  if (isset($callbacks['admin/build/trigger/workflow'])) {
-    $callbacks['admin/build/trigger/workflow']['access callback'] = 'trigger_access_check';
+  if (isset($callbacks['admin/structure/trigger/workflow'])) {
+    $callbacks['admin/structure/trigger/workflow']['access callback'] = 'trigger_access_check';
   }
 }
 
@@ -284,7 +284,7 @@ function workflow_actions_workflow($op, $old_state, $new_state, $node) {
 function workflow_actions_workflow_operations($level, $wid) {
   return array('workflow_overview_actions' => array(
     'title' => t('Actions'),
-    'href' => "admin/build/trigger/workflow/$wid"),
+    'href' => "admin/structure/trigger/workflow/$wid"),
   );
 }
 
