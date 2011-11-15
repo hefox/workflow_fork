@@ -9,6 +9,8 @@
  * We're moving workflow in a API direction, so UI and the like - out.
  */
 
+define('WORKFLOW_ARROW', '&#8594;');
+
 /**
  * Implements hook_help().
  */
