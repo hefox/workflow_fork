@@ -11,28 +11,10 @@ define('WORKFLOW_DELETION', 0);
 define('WORKFLOW_ARROW', '&#8594;');
 
 /**
- * Implements hook_help().
- */
-function workflow_help($path, $arg) {
-  switch ($path) {
-    case 'admin/config/workflow/workflow/edit/%':
-      return t('You are currently viewing the possible transitions to and from workflow states. The state is shown in the left column; the state to be moved to is to the right. For each transition, check the box next to the role(s) that may initiate the transition. For example, if only the "production editor" role may move a node from Review state to the Published state, check the box next to "production editor". The author role is built in and refers to the user who authored the node.');
-    case 'admin/config/workflow/workflow/add':
-      return t('To get started, provide a name for your workflow. This name will be used as a label when the workflow status is shown during node editing.');
-    case 'admin/config/workflow/workflow/state':
-      return t('Enter the name for a state in your workflow. For example, if you were doing a meal workflow it may include states like <em>shop</em>, <em>prepare</em>, <em>eat</em>, and <em>clean up</em>.');
-  }
-}
-
-/**
  * Implements hook_permission().
  */
 function workflow_permission() {
   return array(
-    'administer workflow' => array(
-      'title' => t('Administer workflow'),
-      'description' => t('Administer workflow.'),
-    ),
     'schedule workflow transitions' => array(
       'title' => t('Schedule workflow transitions'),
       'description' => t('Schedule workflow transitions.'),
@@ -44,66 +26,6 @@ function workflow_permission() {
  * Implements hook_menu().
  */
 function workflow_menu() {
-  $items['admin/config/workflow/workflow'] = array(
-    'title' => 'Workflow',
-    'access arguments' => array('administer workflow'),
-    'page callback' => 'workflow_overview',
-    'description' => 'Allows the creation and assignment of arbitrary workflows to node types.',
-    'file' => 'workflow.admin.inc',
-  );
-  $items['admin/config/workflow/workflow/edit/%workflow'] = array(
-    'title' => 'Edit workflow',
-    'type' => MENU_LOCAL_TASK,
-    'context' => MENU_CONTEXT_INLINE,
-    'access arguments' => array('administer workflow'),
-    'page callback' => 'drupal_get_form',
-    'page arguments' => array('workflow_edit_form', 5),
-    'file' => 'workflow.admin.inc',
-  );
-  $items['admin/config/workflow/workflow/list'] = array(
-    'title' => 'List',
-    'weight' => -10,
-    'access arguments' => array('administer workflow'),
-    'page callback' => 'workflow_overview',
-    'file' => 'workflow.admin.inc',
-    'type' => MENU_DEFAULT_LOCAL_TASK,
-  );
-  $items['admin/config/workflow/workflow/add'] = array(
-    'title' => 'Add workflow',
-    'weight' => -8,
-    'access arguments' => array('administer workflow'),
-    'page callback' => 'drupal_get_form',
-    'page arguments' => array('workflow_add_form'),
-    'file' => 'workflow.admin.inc',
-    'type' => MENU_LOCAL_TASK,
-  );
-  $items['admin/config/workflow/workflow/state'] = array(
-    'title' => 'Add state',
-    'type' => MENU_LOCAL_TASK,
-    'context' => MENU_CONTEXT_INLINE,
-    'access arguments' => array('administer workflow'),
-    'page callback' => 'drupal_get_form',
-    'page arguments' => array('workflow_state_add_form'),
-    'file' => 'workflow.admin.inc',
-  );
-  $items['admin/config/workflow/workflow/state/delete'] = array(
-    'title' => 'Delete State',
-    'type' => MENU_LOCAL_TASK,
-    'context' => MENU_CONTEXT_INLINE,
-    'access arguments' => array('administer workflow'),
-    'page callback' => 'drupal_get_form',
-    'page arguments' => array('workflow_state_delete_form'),
-    'file' => 'workflow.admin.inc',
-  );
-  $items['admin/config/workflow/workflow/delete'] = array(
-    'title' => 'Delete workflow',
-    'type' => MENU_LOCAL_TASK,
-    'context' => MENU_CONTEXT_INLINE,
-    'access arguments' => array('administer workflow'),
-    'page callback' => 'drupal_get_form',
-    'page arguments' => array('workflow_delete_form'),
-    'file' => 'workflow.admin.inc',
-  );
   $items['node/%node/workflow'] = array(
     'title' => 'Workflow',
     'type' => MENU_LOCAL_TASK,
@@ -149,12 +71,6 @@ function workflow_node_tab_access($node = NULL) {
  */
 function workflow_theme() {
   return array(
-    'workflow_edit_form' => array(
-      'render element' => 'form',
-    ),
-    'workflow_types_form' => array(
-      'render element' => 'form',
-    ),
     'workflow_history_table_row' => array(
       'variables' => array(
         'history' => NULL,
@@ -176,12 +92,6 @@ function workflow_theme() {
     'workflow_deleted_state' => array(
       'variables' => array(
         'state_name' => NULL,
-      ),
-    ),
-    'workflow_view_permissions' => array(
-      'variables' => array(
-        'header' => array(),
-        'all' => array(),
       ),
     ),
   );
@@ -305,8 +215,6 @@ function workflow_comment_update($comment) {
     workflow_transition($node, $sid);
   }
 }
-
-
 
 /**
  * Implements hook_cron().
