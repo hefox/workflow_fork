@@ -1,0 +1,6 @@
+name = Workflow views
+description = Provide views integration for workflows.
+dependencies[] = workflow
+dependencies[] = views
+package = Workflow
+core = 7.x
