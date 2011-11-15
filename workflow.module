@@ -8,7 +8,6 @@
 define('WORKFLOW_CREATION', 1);
 define('WORKFLOW_CREATION_DEFAULT_WEIGHT', -50);
 define('WORKFLOW_DELETION', 0);
-define('WORKFLOW_ARROW', '&#8594;');
 
 /**
  * Implements hook_permission().
@@ -98,125 +97,6 @@ function workflow_theme() {
 }
 
 /**
- * Implements hook_node_load().
- */
-function workflow_node_load($nodes, $types) {
-  foreach ($nodes as $node) {
-    $node->_workflow = workflow_node_current_state($node);
-    $node->workflow = workflow_node_current_state($node);
-    // Add scheduling information.
-    $res = db_query('SELECT * FROM {workflow_scheduled_transition} WHERE nid = :nid', array(':nid' => $node->nid));
-    foreach ($res as $row) {
-      $node->_workflow_scheduled_sid = $row->sid;
-      $node->_workflow_scheduled_timestamp = $row->scheduled;
-      $node->_workflow_scheduled_comment = $row->comment;
-    }
-  }
-}
-
-/**
- * Implements hook_node_insert().
- */
-function workflow_node_insert($node) {
-  // Do nothing if there is no workflow for this node type.
-  $wid = workflow_get_workflow_for_type($node->type);
-  if (!$wid) {
-    // Do nothing.
-    return;
-  }
-  // If the state is not specified, use first valid state.
-  // For example, a new node must move from (creation) to some
-  // initial state.
-  if (empty($node->workflow)) {
-    $choices = workflow_field_choices($node);
-    $keys = array_keys($choices);
-    $sid = array_shift($keys);
-  }
-  if (!isset($sid)) {
-    $sid = $node->workflow;
-  }
-  // And make the transition.
-  workflow_transition($node, $sid);
-}
-
-/**
- * Implements hook_node_update().
- */
-function workflow_node_update($node) {
-  // Do nothing if there is no workflow for this node type.
-  $wid = workflow_get_workflow_for_type($node->type);
-  if (!$wid) {
-    return;
-  }
-  // Get new state from value of workflow form field, stored in $node->workflow.
-  if (!isset($sid)) {
-    $sid = $node->workflow;
-  }
-  workflow_transition($node, $sid);
-}
-
-/**
- * Implements hook_node_delete().
- */
-function workflow_node_delete($node) {
-  $node->workflow_stamp = REQUEST_TIME;
-  //db_query("DELETE FROM {workflow_node} WHERE nid = :nid", array(':nid' => $node->nid));
-  $num_deleted = db_delete('workflow_node')
-  ->condition('nid', $node->nid)
-  ->execute();
-  if (!empty($node->_worfklow)) {
-    _workflow_write_history($node, WORKFLOW_DELETION, t('Node deleted'));
-  } // Bug catch credit: #1258846 nkschaefer
-  // Delete any scheduled transitions for this node.
-  //db_query("DELETE FROM {workflow_scheduled_transition} WHERE nid = :nid", array(':nid' => $node->nid));
-  $num_deleted = db_delete('workflow_scheduled_transition')
-  ->condition('nid', $node->nid)
-  ->execute();
-}
-
-/**
- * Implements hook_comment_insert().
- */
-function workflow_comment_insert($comment) {
-  if (isset($comment->workflow)) {
-    $node = node_load($comment->nid);
-    $sid = $comment->workflow;
-    $node->workflow_comment = $comment->workflow_comment;
-    if (isset($comment->workflow_scheduled)) {
-      $node->workflow_scheduled = $comment->workflow_scheduled;
-    }
-    if (isset($comment->workflow_scheduled_date)) {
-      $node->workflow_scheduled_date = $comment->workflow_scheduled_date;
-    }
-    if (isset($comment->workflow_scheduled_hour)) {
-      $node->workflow_scheduled_hour = $comment->workflow_scheduled_hour;
-    }
-    workflow_transition($node, $sid);
-  }
-}
-
-/**
- * Implements hook_comment_update().
- */
-function workflow_comment_update($comment) {
-  if (isset($comment->workflow)) {
-    $node = node_load($comment->nid);
-    $sid = $comment->workflow;
-    $node->workflow_comment = $comment->workflow_comment;
-    if (isset($comment->workflow_scheduled)) {
-      $node->workflow_scheduled = $comment->workflow_scheduled;
-    }
-    if (isset($comment->workflow_scheduled_date)) {
-      $node->workflow_scheduled_date = $comment->workflow_scheduled_date;
-    }
-    if (isset($comment->workflow_scheduled_hour)) {
-      $node->workflow_scheduled_hour = $comment->workflow_scheduled_hour;
-    }
-    workflow_transition($node, $sid);
-  }
-}
-
-/**
  * Implements hook_cron().
  */
 function workflow_cron() {
@@ -226,7 +106,6 @@ function workflow_cron() {
   $nodes = db_query('SELECT * FROM {workflow_scheduled_transition} s WHERE s.scheduled > 0 AND s.scheduled < :time', array(':time' => REQUEST_TIME));
   foreach ($nodes as $row) {
     $node = node_load($row->nid);
-
     // Make sure transition is still valid; i.e., the node is
     // still in the state it was when the transition was scheduled.
     if ($node->_workflow == $row->old_sid) {
@@ -251,6 +130,42 @@ function workflow_cron() {
     // being published, the anonymous user can see it.
     cache_clear_all();
   }
+}
+
+/**
+ * Implements hook_field_extra_fields_alter().
+ */
+function workflow_field_extra_fields_alter(&$info) {
+  foreach (node_type_get_types() as $bundle) {
+    if (in_array('node', variable_get('workflow_' . $bundle->type, array('node')))) {
+      $info['node'][$bundle->type]['form']['workflow'] = array(
+        'label' => t('Workflow'),
+        'description' => t('Workflow module form'),
+        'weight' => 10,
+      );
+    }
+  }
+  return $info;
+}
+
+/**
+ * Implements hook_user_delete().
+ */
+function workflow_user_delete($account) {
+  //db_query("UPDATE {workflow_node} SET uid = 0 WHERE uid = :uid", array(':uid' => $account->uid));
+  $num_updated = db_update('workflow_node')
+  ->fields(array(
+  'uid' => 0,
+  ))
+  ->condition('uid', $account->uid, '=')
+  ->execute();
+  //db_query("UPDATE {workflow_node_history} SET uid = 0 WHERE uid = :uid", array(':uid' => $account->uid));
+  $num_updated = db_update('workflow_node_history')
+  ->fields(array(
+  'uid' => 0,
+  ))
+  ->condition('uid', $account->uid, '=')
+  ->execute();
 }
 
 /**
@@ -383,41 +298,132 @@ function workflow_token_info() {
 }
 
 /**
- * Implements hook_field_extra_fields_alter().
+ * Node specific functions, remants of nodeapi.
  */
-function workflow_field_extra_fields_alter(&$info) {
-  foreach (node_type_get_types() as $bundle) {
-    if (in_array('node', variable_get('workflow_' . $bundle->type, array('node')))) {
-      $info['node'][$bundle->type]['form']['workflow'] = array(
-        'label' => t('Workflow'),
-        'description' => t('Workflow module form'),
-        'weight' => 10,
-      );
+
+/**
+ * Implements hook_node_load(). Consider replacing with hook_entity_load().
+ */
+function workflow_node_load($nodes, $types) {
+  foreach ($nodes as $node) {
+    $node->_workflow = workflow_node_current_state($node);
+    $node->workflow = workflow_node_current_state($node);
+    // Add scheduling information.
+    $res = db_query('SELECT * FROM {workflow_scheduled_transition} WHERE nid = :nid', array(':nid' => $node->nid));
+    foreach ($res as $row) {
+      $node->_workflow_scheduled_sid = $row->sid;
+      $node->_workflow_scheduled_timestamp = $row->scheduled;
+      $node->_workflow_scheduled_comment = $row->comment;
     }
   }
-  return $info;
 }
 
 /**
- * Implements hook_user_delete().
+ * Implements hook_node_insert().
  */
-function workflow_user_delete($account) {
-  //db_query("UPDATE {workflow_node} SET uid = 0 WHERE uid = :uid", array(':uid' => $account->uid));
-  $num_updated = db_update('workflow_node')
-  ->fields(array(
-  'uid' => 0,
-  ))
-  ->condition('uid', $account->uid, '=')
+function workflow_node_insert($node) {
+  // Do nothing if there is no workflow for this node type.
+  $wid = workflow_get_workflow_for_type($node->type);
+  if (!$wid) {
+    // Do nothing.
+    return;
+  }
+  // If the state is not specified, use first valid state.
+  // For example, a new node must move from (creation) to some
+  // initial state.
+  if (empty($node->workflow)) {
+    $choices = workflow_field_choices($node);
+    $keys = array_keys($choices);
+    $sid = array_shift($keys);
+  }
+  if (!isset($sid)) {
+    $sid = $node->workflow;
+  }
+  // And make the transition.
+  workflow_transition($node, $sid);
+}
+
+/**
+ * Implements hook_node_update().
+ */
+function workflow_node_update($node) {
+  // Do nothing if there is no workflow for this node type.
+  $wid = workflow_get_workflow_for_type($node->type);
+  if (!$wid) {
+    return;
+  }
+  // Get new state from value of workflow form field, stored in $node->workflow.
+  if (!isset($sid)) {
+    $sid = $node->workflow;
+  }
+  workflow_transition($node, $sid);
+}
+
+/**
+ * Implements hook_node_delete().
+ */
+function workflow_node_delete($node) {
+  $node->workflow_stamp = REQUEST_TIME;
+  //db_query("DELETE FROM {workflow_node} WHERE nid = :nid", array(':nid' => $node->nid));
+  $num_deleted = db_delete('workflow_node')
+  ->condition('nid', $node->nid)
   ->execute();
-  //db_query("UPDATE {workflow_node_history} SET uid = 0 WHERE uid = :uid", array(':uid' => $account->uid));
-  $num_updated = db_update('workflow_node_history')
-  ->fields(array(
-  'uid' => 0,
-  ))
-  ->condition('uid', $account->uid, '=')
+  if (!empty($node->_worfklow)) {
+    _workflow_write_history($node, WORKFLOW_DELETION, t('Node deleted'));
+  } // Bug catch credit: #1258846 nkschaefer
+  // Delete any scheduled transitions for this node.
+  //db_query("DELETE FROM {workflow_scheduled_transition} WHERE nid = :nid", array(':nid' => $node->nid));
+  $num_deleted = db_delete('workflow_scheduled_transition')
+  ->condition('nid', $node->nid)
   ->execute();
 }
 
+/**
+ * Implements hook_comment_insert().
+ */
+function workflow_comment_insert($comment) {
+  if (isset($comment->workflow)) {
+    $node = node_load($comment->nid);
+    $sid = $comment->workflow;
+    $node->workflow_comment = $comment->workflow_comment;
+    if (isset($comment->workflow_scheduled)) {
+      $node->workflow_scheduled = $comment->workflow_scheduled;
+    }
+    if (isset($comment->workflow_scheduled_date)) {
+      $node->workflow_scheduled_date = $comment->workflow_scheduled_date;
+    }
+    if (isset($comment->workflow_scheduled_hour)) {
+      $node->workflow_scheduled_hour = $comment->workflow_scheduled_hour;
+    }
+    workflow_transition($node, $sid);
+  }
+}
+
+/**
+ * Implements hook_comment_update().
+ */
+function workflow_comment_update($comment) {
+  if (isset($comment->workflow)) {
+    $node = node_load($comment->nid);
+    $sid = $comment->workflow;
+    $node->workflow_comment = $comment->workflow_comment;
+    if (isset($comment->workflow_scheduled)) {
+      $node->workflow_scheduled = $comment->workflow_scheduled;
+    }
+    if (isset($comment->workflow_scheduled_date)) {
+      $node->workflow_scheduled_date = $comment->workflow_scheduled_date;
+    }
+    if (isset($comment->workflow_scheduled_hour)) {
+      $node->workflow_scheduled_hour = $comment->workflow_scheduled_hour;
+    }
+    workflow_transition($node, $sid);
+  }
+}
+
+/**
+ * Business related functions, the API.
+ */
+ 
 /**
  * Validate target state and either execute a transition immediately or schedule
  * a transition to be executed later by cron.
