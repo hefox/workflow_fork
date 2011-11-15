@@ -15,7 +15,7 @@
 function workflow_help($path, $arg) {
   switch ($path) {
     case 'admin/build/trigger/workflow':
-      return t('Use this page to set actions to happen when transitions occur. '.
+      return t('Use this page to set actions to happen when transitions occur. ' .
         'To configure actions, use the <a href="@link">actions settings page</a>.',
           array('@link' => url('admin/settings/actions')));
     break;
@@ -130,7 +130,7 @@ function workflow_select_given_state_action($node, $context) {
  * @see workflow_select_given_state_action()
  */
 function workflow_select_given_state_action_form($context) {
-  $result = db_query("SELECT * FROM {workflow_states} ws LEFT JOIN {workflows} w ON ws.wid = w.wid ".
+  $result = db_query("SELECT * FROM {workflow_states} ws LEFT JOIN {workflows} w ON ws.wid = w.wid " .
     "WHERE ws.sysid = 0 AND ws.status = 1 ORDER BY ws.wid, ws.weight");
   $previous_workflow = '';
   $options = array();
@@ -147,14 +147,14 @@ function workflow_select_given_state_action_form($context) {
   $form['force'] = array(
     '#type' => 'checkbox',
     '#title' => t('Force transition'),
-    '#description' => t('If this box is checked, the new state will be assigned even if workflow '.
+    '#description' => t('If this box is checked, the new state will be assigned even if workflow ' .
       'permissions disallow it.'),
     '#default_value' => isset($context['force']) ? $context['force'] : '',
   );
   $form['workflow_comment'] = array(
     '#type' => 'textfield',
     '#title' => t('Message'),
-    '#description' => t('This message will be written into the workflow history log when the action '.
+    '#description' => t('This message will be written into the workflow history log when the action ' .
       'runs. You may include the following variables: %state, %title'),
     '#default_value' => isset($context['workflow_history']) ? $context['workflow_history'] : t('Action set %title to %state.'),
   );
@@ -188,21 +188,21 @@ function workflow_actions_trigger_info() {
   }
   $trigger_page = drupal_substr($_GET['q'], 0, 28) == 'admin/structure/trigger/workflow';
   if ($trigger_page && $wid = arg(4)) {
-    $result = db_query("SELECT tm.type, w.wid, w.name, ws.state, wt.tid, wt.sid, wt.target_sid ".
-      "FROM {workflow_type_map} tm ".
-      "LEFT JOIN {workflows} w ON tm.wid = w.wid ".
-      "LEFT JOIN {workflow_states} ws ON w.wid = ws.wid ".
-      "LEFT JOIN {workflow_transitions} wt ON ws.sid = wt.sid ".
-      "WHERE w.wid = :wid AND wt.target_sid IS NOT NULL ".
+    $result = db_query("SELECT tm.type, w.wid, w.name, ws.state, wt.tid, wt.sid, wt.target_sid " .
+      "FROM {workflow_type_map} tm " .
+      "LEFT JOIN {workflows} w ON tm.wid = w.wid " .
+      "LEFT JOIN {workflow_states} ws ON w.wid = ws.wid " .
+      "LEFT JOIN {workflow_transitions} wt ON ws.sid = wt.sid " .
+      "WHERE w.wid = :wid AND wt.target_sid IS NOT NULL " .
       "ORDER BY tm.type, ws.weight", array(':wid' => $wid));
   }
   else {
-    $result = db_query("SELECT tm.type, w.wid, w.name, ws.state, wt.tid, wt.sid, wt.target_sid ".
-    "FROM {workflow_type_map} tm ".
-    "LEFT JOIN {workflows} w ON tm.wid = w.wid ".
-    "LEFT JOIN {workflow_states} ws ON w.wid = ws.wid ".
-    "LEFT JOIN {workflow_transitions} wt ON ws.sid = wt.sid ".
-    "WHERE wt.target_sid IS NOT NULL ".
+    $result = db_query("SELECT tm.type, w.wid, w.name, ws.state, wt.tid, wt.sid, wt.target_sid " .
+    "FROM {workflow_type_map} tm " .
+    "LEFT JOIN {workflows} w ON tm.wid = w.wid " .
+    "LEFT JOIN {workflow_states} ws ON w.wid = ws.wid " .
+    "LEFT JOIN {workflow_transitions} wt ON ws.sid = wt.sid " .
+    "WHERE wt.target_sid IS NOT NULL " .
     "ORDER BY tm.type, ws.weight");
   }
   foreach ($result as $data) {
@@ -218,15 +218,15 @@ function workflow_actions_trigger_info() {
     );
   }
   if ($trigger_page) {
-    drupal_set_message(t('Either no transitions have been set up or this workflow has not yet been ".
-    "assigned to a content type. To enable the assignment of actions, edit the workflow to assign ".
-    "permissions for roles to do transitions. After that is completed, transitions will appear here ".
-    "and you will be able to assign actions to them.'));
+    drupal_set_message(t('Either no transitions have been set up or this workflow has not yet been ' .
+    'assigned to a content type. To enable the assignment of actions, edit the workflow to assign ' .
+    'permissions for roles to do transitions. After that is completed, transitions will appear here ' .
+    'and you will be able to assign actions to them.'));
   }
 }
 
 /**
- * Implementation of hook_workflow().
+ * Implements hook_workflow().
  *
  * @param $op
  *   The current workflow operation: 'transition pre' or 'transition post'.
@@ -242,12 +242,12 @@ function workflow_actions_workflow($op, $old_state, $new_state, $node) {
     case 'transition post':
       // A transition has occurred; fire off actions associated with this transition.
       $tid = workflow_get_transition_id($options['old_sid'], $sid);
-      $op = 'workflow-'. $node->type .'-'. $tid;
+      $op = 'workflow-' . $node->type . '-' . $tid;
       $aids = _trigger_get_hook_aids('workflow', $op);
       if ($aids) {
         $context = array(
-          'hook' => 'workflow',
-          'op' => $op,
+        'hook' => 'workflow',
+        'op' => $op,
         );
         // We need to get the expected object if the action's type is not 'node'.
         // We keep the object in $objects so we can reuse it if we have multiple actions
@@ -256,13 +256,13 @@ function workflow_actions_workflow($op, $old_state, $new_state, $node) {
           if ($action_info['type'] != 'node') {
             if (!isset($objects[$action_info['type']])) {
               $objects[$action_info['type']] = _trigger_normalize_node_context($action_info['type'], $node);
-           }
-           // Since we know about the node, we pass that info along to the action.
-           $context['node'] = $node;
-           $result = actions_do($aid, $objects[$action_info['type']], $context);
-         }
-         else {
-           actions_do($aid, $node, $context);
+            }
+            // Since we know about the node, we pass that info along to the action.
+            $context['node'] = $node;
+            $result = actions_do($aid, $objects[$action_info['type']], $context);
+          }
+          else {
+            actions_do($aid, $node, $context);
           }
         }
       }
@@ -341,9 +341,9 @@ function workflow_actions_get_actions($tid) {
     // Transition ID is the last part, e.g., foo-bar-1.
     $transition = array_pop(explode('-', $data->op));
     if ($tid == $transition) {
-      $results = db_query("SELECT aa.aid, a.type FROM {trigger_assignments} aa ".
-        "LEFT JOIN {actions} a ON aa.aid = a.aid ".
-        "WHERE aa.hook = 'workflow' AND aa.op = ':op' ".
+      $results = db_query("SELECT aa.aid, a.type FROM {trigger_assignments} aa " .
+        "LEFT JOIN {actions} a ON aa.aid = a.aid " .
+        "WHERE aa.hook = 'workflow' AND aa.op = ':op' " .
         "ORDER BY weight", array(':op' => $data->op));
       foreach ($results as $action) {
         $aids[$action->aid]['type'] = $action->type;
