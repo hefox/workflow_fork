@@ -1,0 +1,6 @@
+name = Workflow rules
+description = Provide rules integration for workflows.
+dependencies[] = workflow
+dependencies[] = rules
+package = Workflow
+core = 7.x
