@@ -1,0 +1,6 @@
+name = Workflow actions and triggers
+description = Provide actons and triggers for workflows.
+dependencies[] = workflow
+dependencies[] = trigger
+package = Workflow
+core = 7.x
