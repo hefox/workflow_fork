@@ -1,5 +1,5 @@
 name = Workflow actions and triggers
-description = Provide actons and triggers for workflows.
+description = Provides actions and triggers for workflows.
 dependencies[] = workflow
 dependencies[] = trigger
 package = Workflow

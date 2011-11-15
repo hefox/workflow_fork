@@ -12,7 +12,7 @@
 /**
  * Implements hook_help().
  */
-function workflow_help($path, $arg) {
+function workflow_actions_help($path, $arg) {
   switch ($path) {
     case 'admin/build/trigger/workflow':
       return t('Use this page to set actions to happen when transitions occur. ' .

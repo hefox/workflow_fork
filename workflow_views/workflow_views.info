@@ -1,5 +1,5 @@
 name = Workflow views
-description = Provide views integration for workflows.
+description = Provides views integration for workflows.
 dependencies[] = workflow
 dependencies[] = views
 package = Workflow

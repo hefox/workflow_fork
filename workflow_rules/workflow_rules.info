@@ -1,5 +1,5 @@
 name = Workflow rules
-description = Provide rules integration for workflows.
+description = Provides rules integration for workflows.
 dependencies[] = workflow
 dependencies[] = rules
 package = Workflow

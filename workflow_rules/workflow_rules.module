@@ -22,7 +22,7 @@
  * @param $node
  *   The node whose workflow state is changing.
  */
-function workflow_actions_workflow($op, $old_state, $new_state, $node) {
+function workflow_rules_workflow($op, $old_state, $new_state, $node) {
   switch ($op) {
     case 'transition post':
       // Rules are updated on after the transition.
