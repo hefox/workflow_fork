@@ -511,10 +511,6 @@ function workflow_overview() {
         'title' => t('Add state'),
         'href' => "admin/config/workflow/workflow/state/$wid",
       ),
-      'workflow_overview_actions' => array(
-        'title' => t('Actions'),
-        'href' => "admin/structure/trigger/workflow/$wid",
-      ),
       'workflow_overview_edit' => array(
         'title' => t('Edit'),
         'href' => "admin/config/workflow/workflow/edit/$wid",
@@ -527,9 +523,6 @@ function workflow_overview() {
     // Allow modules to insert their own workflow operations.
     $links = array_merge($links, module_invoke_all('workflow_operations', 'workflow', $wid));
     $states = workflow_get_states($wid);
-    if (!module_exists('trigger') || count($states) < 2) {
-      unset($links['workflow_overview_actions']);
-    }
     $row[] = array(check_plain(t($name)), theme('links', array('links' => $links)));
     $subrows = array();
     foreach ($states as $sid => $state_name) {
