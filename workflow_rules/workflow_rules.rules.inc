@@ -9,27 +9,17 @@
  * Implements hook_rules_event_info().
  */
 
-function workflow_rules_event_info() {
+function workflow_rules_rules_event_info() {
   $events = array(
     'workflow_state_changed' => array(
       'group' => t('Workflow'),
       'label' => t('Workflow state has changed'),
-      'variables' => array(
-        'node' => array(
-          'type' => 'node',
-          'label' => t('Updated content'),
-        ),
-      ),
+      'variables' => rules_events_node_variables(t('updated content'), TRUE),
     ),
     'workflow_comment_added' => array(
       'group' => t('Workflow'),
-      'label' => t('Workflow comment was added, but state did not change.'),
-      'variables' => array(
-        'node' => array(
-          'type' => 'node',
-          'label' => t('Updated content'),
-        ),
-      ),
+      'label' => t('Workflow comment was added, but state did not change'),
+      'variables' => rules_events_node_variables(t('updated content'), TRUE),
     ),
   );
   return $events;
@@ -38,7 +28,7 @@ function workflow_rules_event_info() {
 /**
  * Implements hook_rules_condition_info().
  */
-function workflow_rules_condition_info() {
+function workflow_rules_rules_condition_info() {
   return array(
     'workflow_check_transition' => array(
       'group' => t('Workflow'),
@@ -86,7 +76,7 @@ function workflow_rules_condition_info() {
 /**
  * Implements hook_rules_action_info().
  */
-function workflow_rules_action_info() {
+function workflow_rules_rules_action_info() {
   return array(
     'workflow_rules_set_state' => array(
       'group' => t('Workflow'),

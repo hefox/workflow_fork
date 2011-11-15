@@ -10,31 +10,6 @@
  */
 
 /**
- * Implements hook_help().
- */
-function workflow_actions_help($path, $arg) {
-  switch ($path) {
-    case 'admin/structure/trigger/workflow':
-      return t('Use this page to set actions to happen when transitions occur. ' .
-        'To configure actions, use the <a href="@link">actions settings page</a>.',
-          array('@link' => url('admin/settings/actions')));
-    break;
-  }
-}
-
-/**
- * Implements hook_menu_alter().
- *
- * Work around loss of menu local task inheritance in Drupal 6.2.
- */
-function workflow_actions_menu_alter(&$callbacks) {
-  if (isset($callbacks['admin/structure/trigger/workflow'])) {
-    $callbacks['admin/structure/trigger/workflow']['access callback'] = 'trigger_access_check';
-  }
-}
-
-
-/**
  * Implements hook_theme().
  */
 function workflow_actions_theme() {
@@ -54,26 +29,15 @@ function workflow_action_info() {
       'type' => 'node',
       'label' => t('Change workflow state of post to next state'),
       'configurable' => FALSE,
-      'triggers' => array('node_presave', 'comment_insert', 'comment_update', 'workflow'),
+      'triggers' => array('any'),
     ),
     'workflow_select_given_state_action' => array(
       'type' => 'node',
       'label' => t('Change workflow state of post to new state'),
       'configurable' => TRUE,
-      'triggers' => array('node_presave', 'comment_insert', 'comment_update', 'workflow'),
+      'triggers' => array('any'),
     ),
   );
-}
-
-/**
- * Implements action_info_alter().
- */
-function workflow_actions_action_info_alter(&$actions) {
-  foreach (array_keys($actions) as $key) {
-    // Modify each action's hooks declaration, changing it to say
-    // that the action supports any hook.
-    $actions[$key]['triggers'] = array('any');
-  }
 }
 
 /**
