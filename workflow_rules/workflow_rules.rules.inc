@@ -104,7 +104,10 @@ function workflow_rules_rules_action_info() {
  */
 function _workflow_rules_condition_select() {
   $options['ANY'] = 'ANY state';
-  $options = $options + workflow_get_states();
+  foreach (workflow_get_workflow_states() as $state) {
+    $states[$state->sid] = check_plain($state->state);
+  }
+  $options = $options + $states;
   return $options;
 }
 
@@ -112,7 +115,10 @@ function _workflow_rules_condition_select() {
  * Condition callback: gather all workflow states.
  */
 function _workflow_rules_action_select() {
-  return workflow_get_states();
+  foreach (workflow_get_workflow_states() as $state) {
+    $states[$state->sid] = check_plain($state->state);
+  }
+  return $states;
 }
 
 /**

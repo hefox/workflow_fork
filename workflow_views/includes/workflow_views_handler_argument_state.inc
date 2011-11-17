@@ -39,7 +39,9 @@ class views_handler_argument_workflow_state extends views_handler_argument {
     }
     static $states;
     if (!isset($states)) {
-      $states = workflow_get_states();
+      foreach (workflow_get_workflow_states() as $state) {
+        $states[$state->sid] = check_plain($state->state);
+      }
     }
     $output = $states[$sid];
     if (empty($output)) {
