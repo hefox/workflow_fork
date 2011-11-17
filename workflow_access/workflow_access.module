@@ -25,7 +25,8 @@ function workflow_access_node_grants($account, $op) {
  */
 function workflow_access_node_access_records($node) {
   $grants = array();
-  foreach (workflow_get_workflow_node_by_nid($node->nid) as $state) {
+  if ($state = workflow_get_workflow_node_by_nid($node->nid)) {
+    $state = workflow_get_workflow_states_by_sid($state->sid);
     foreach (workflow_access_get_workflow_access_by_sid($state->sid) as $grant) {
       $grants[] = array(
         'realm' => ($grant->rid == -1) ? 'workflow_access_owner' : 'workflow_access',
@@ -63,7 +64,7 @@ function workflow_access_node_access_explain($row) {
  * Add a "three dimensional" (state, role, permission type) configuration
  * interface to the workflow edit form.
  */
-function workflow_access_form_workflow_edit_form_alter(&$form, $form_state) {
+function workflow_access_form_workflow_admin_ui_edit_form_alter(&$form, $form_state) {
   // A list of roles available on the site and our
   // special -1 role used to represent the node author.
   $rids = user_roles();
@@ -75,8 +76,9 @@ function workflow_access_form_workflow_edit_form_alter(&$form, $form_state) {
     '#tree' => TRUE,
   );
   // Add a table for every workflow state.
-  foreach (workflow_get_workflow_states_by_wid($form['wid']['#value']) as $state) {
-    if ($state->name == t('(creation)')) {
+  $options = array('status' => 1);
+  foreach (workflow_get_workflow_states_by_wid($form['wid']['#value'], $options) as $state) {
+    if ($state->state == t('(creation)')) {
       // No need to set perms on creation.
       continue;
     }
@@ -102,7 +104,7 @@ function workflow_access_form_workflow_edit_form_alter(&$form, $form_state) {
     // TODO better tables using a #theme function instead of direct #prefixing
     $form['workflow_access'][$state->sid] = array(
       '#type' => 'fieldset',
-      '#title' => t('@state', array('@state' => $state->name)),
+      '#title' => t('@state', array('@state' => $state->state)),
       '#collapsible' => TRUE,
       '#tree' => TRUE,
     );
@@ -186,7 +188,7 @@ function workflow_access_workflow($op, $old_sid, $sid, $node) {
   // NOTE: Any module that sets node access rights on insert will hit this situation.
   //
   if ($old_state = workflow_get_workflow_states_by_sid($old_sid)) {
-    if ($op == 'transition post' && $old_sid != $sid && $old_state->name !== '(creation)') {
+    if ($op == 'transition post' && $old_sid != $sid && $old_state->state !== '(creation)') {
       node_access_acquire_grants($node);
     }
   }
@@ -205,6 +207,13 @@ function workflow_access_get_workflow_access_by_sid($sid) {
 }
 
 /**
+ * Given a sid and a rid (the  unique key), delete all access data for this state.
+ */
+function workflow_access_delete_workflow_access_by_sid_rid($sid, $rid) {
+  db_delete('workflow_access')->condition('sid', $sid)->condition('rid', $rid)->execute();
+}
+
+/**
  * Given a sid, delete all access data for this state.
  */
 function workflow_access_delete_workflow_access_by_sid($sid) {
@@ -214,8 +223,8 @@ function workflow_access_delete_workflow_access_by_sid($sid) {
 /**
  * Given data, insert into workflow access - we never update.
  */
-function workflow_access_insert_workflow_access_by_sid($data) {
+function workflow_access_insert_workflow_access_by_sid(&$data) {
   $data = (object) $data;
-  workflow_access_delete_workflow_access_by_sid($data->sid);
+  workflow_access_delete_workflow_access_by_sid_rid($data->sid, $data->rid);
   drupal_write_record('workflow_access', $data);
 }

@@ -105,7 +105,7 @@ function workflow_rules_rules_action_info() {
 function _workflow_rules_condition_select() {
   $options['ANY'] = 'ANY state';
   foreach (workflow_get_workflow_states() as $state) {
-    $states[$state->sid] = check_plain($state->name);
+    $states[$state->sid] = check_plain($state->state);
   }
   $options = $options + $states;
   return $options;
@@ -116,7 +116,7 @@ function _workflow_rules_condition_select() {
  */
 function _workflow_rules_action_select() {
   foreach (workflow_get_workflow_states() as $state) {
-    $states[$state->sid] = check_plain($state->name);
+    $states[$state->sid] = check_plain($state->state);
   }
   return $states;
 }

@@ -153,14 +153,14 @@ function workflow_actions_trigger_info() {
     return array();
   }
   $trigger_page = drupal_substr($_GET['q'], 0, 28) == 'admin/structure/trigger/workflow';
+  // TODO these should be pulled into their own DB function calls.
   if ($trigger_page && $wid = arg(4)) {
-  // TODO get back to these,t hese look pretty specialized.
     $result = db_query("SELECT tm.type, w.wid, w.name, ws.state, wt.tid, wt.sid, wt.target_sid " .
       "FROM {workflow_type_map} tm " .
       "LEFT JOIN {workflows} w ON tm.wid = w.wid " .
       "LEFT JOIN {workflow_states} ws ON w.wid = ws.wid " .
       "LEFT JOIN {workflow_transitions} wt ON ws.sid = wt.sid " .
-      "WHERE w.wid = :wid AND wt.target_sid IS NOT NULL " .
+      "WHERE w.wid = :wid AND ws.status = 1 AND wt.target_sid IS NOT NULL " .
       "ORDER BY tm.type, ws.weight", array(':wid' => $wid));
   }
   else {
@@ -169,7 +169,7 @@ function workflow_actions_trigger_info() {
     "LEFT JOIN {workflows} w ON tm.wid = w.wid " .
     "LEFT JOIN {workflow_states} ws ON w.wid = ws.wid " .
     "LEFT JOIN {workflow_transitions} wt ON ws.sid = wt.sid " .
-    "WHERE wt.target_sid IS NOT NULL " .
+    "WHERE ws.status = 1 AND wt.target_sid IS NOT NULL " .
     "ORDER BY tm.type, ws.weight");
   }
   foreach ($result as $data) {
@@ -208,9 +208,9 @@ function workflow_actions_workflow($op, $old_state, $new_state, $node) {
   switch ($op) {
     case 'transition post':
       // A transition has occurred; fire off actions associated with this transition.
-      $transition = workflow_get_workflow_transitions_by_sid_target_sid($options['old_sid'], $sid);
+      $transition = workflow_get_workflow_transitions_by_sid_target_sid($old_state, $new_state);
       $op = 'workflow-' . $node->type . '-' . $transition->tid;
-      $aids = _trigger_get_hook_aids('workflow', $op);
+      $aids = trigger_get_assigned_actions($op);
       if ($aids) {
         $context = array(
         'hook' => 'workflow',

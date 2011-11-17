@@ -46,13 +46,16 @@ function workflow_tab_page($node = NULL) {
       $old_state_name = theme('workflow_deleted_state', array('deleted_state' => $deleted_states[$history->old_sid]));
       $footer_needed = TRUE;
     }
-    else {
+    elseif (isset($states[$history->old_sid])) {
       $old_state_name = check_plain(t($states[$history->old_sid]));
+    }
+    else {
+      $old_state_name = '*';
     }
     $rows[] = theme('workflow_history_table_row', array( 'history' => $history, 'old_state_name' => $old_state_name, 'state_name' => $state_name ));
   }
   $output .= theme('workflow_history_table', array('rows' => $rows, 'footer' => !empty($footer_needed)));
-  $output .= theme('pager', array('tags' => $states_per_page));
+  $output .= theme('pager', array('tags' => variable_get('workflow_states_per_page', 20)));
   return $output;
 }
 
@@ -99,8 +102,8 @@ function theme_workflow_current_state($variables) {
 /**
  * Theme a deleted state in the workflow history table.
  */
-function theme_workflow_deleted_state($state_name) {
-  return check_plain(t($state_name)) . '*';
+function theme_workflow_deleted_state($variables) {
+  return check_plain(t($variables['state_name'])) . '*';
 }
 
 /**
@@ -124,6 +127,7 @@ function workflow_tab_form($form_id, $form_state, $node, $wid, $states, $current
   // Only build form if user has possible target state(s).
   if (count($choices) >= $min) {
     $workflow = workflow_get_workflow_type_map_by_type($node->type);
+    $workflow = workflow_get_workflows_by_wid($workflow->wid);
     $form['#wf'] = $workflow;
     $name = check_plain((t($workflow->name)));
     $timestamp = '';
