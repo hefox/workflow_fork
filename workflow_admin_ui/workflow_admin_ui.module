@@ -42,7 +42,6 @@ function workflow_admin_ui_permission() {
   );
 }
 
-
 /**
  * Implements hook_menu().
  */
@@ -156,7 +155,10 @@ function workflow_admin_ui_add_form($form, &$form_state, $name = NULL) {
  */
 function workflow_admin_ui_add_form_validate($form, &$form_state) {
   $workflow_name = $form_state['values']['wf_name'];
-  $workflows = array_flip(workflow_get_all());
+  foreach (workflow_get_workflows() as $data) {
+    $workflows[$data->wid] = check_plain(t($data->name));
+  }
+  $workflows = array_flip($workflows);
   // Make sure a nonblank workflow name is provided.
   if ($workflow_name == '') {
     form_set_error('wf_name', t('Please provide a nonblank name for the new workflow.'));
@@ -175,12 +177,17 @@ function workflow_admin_ui_add_form_validate($form, &$form_state) {
  */
 function workflow_admin_ui_add_form_submit($form, &$form_state) {
   $workflow_name = $form_state['values']['wf_name'];
-  $wid = workflow_create($workflow_name);
-  watchdog('workflow', 'Created workflow %name', array('%name' => $workflow_name));
+  $workflow = array(
+    'name' => $workflow_name,
+    'tab_roles' => '',
+    'options' => serialize($options),
+  );
+  workflow_update_workflows($workflow);
+  watchdog('workflow', 'Created workflow %name', array('%name' => $workflow->name));
   drupal_set_message(t('The workflow %name was created. You should now add states to your workflow.',
-    array('%name' => $workflow_name)), 'status');
-  $form_state['wid'] = $wid;
-  $form_state['redirect'] = 'admin/config/workflow/workflow/state/' . $wid;
+    array('%name' => $workflow->name)), 'status');
+  $form_state['wid'] = $workflow->wid;
+  $form_state['redirect'] = 'admin/config/workflow/workflow/state/' . $workflow->wid;
 }
 
 /**
@@ -200,10 +207,11 @@ function workflow_admin_ui_delete_form($form, &$form_state, $wid, $sid = NULL) {
     '#type' => 'value',
     '#value' => $wid,
   );
+  $workflow  = workflow_get_workflows_by_wid($wid);
   return confirm_form(
     $form,
     t('Are you sure you want to delete %title? All nodes that have a workflow state associated with this workflow will ' .
-      'have those workflow states removed.', array('%title' => workflow_get_name($wid))),
+      'have those workflow states removed.', array('%title' => $workflow->name)),
     !empty($_GET['destination']) ? $_GET['destination'] : 'admin/config/workflow/workflow',
     t('This action cannot be undone.'),
     t('Delete'),
@@ -218,10 +226,10 @@ function workflow_admin_ui_delete_form($form, &$form_state, $wid, $sid = NULL) {
  */
 function workflow_admin_ui_delete_form_submit($form, &$form_state) {
   if ($form_state['values']['confirm'] == 1) {
-    $workflow_name = workflow_get_name($form_state['values']['wid']);
-    workflow_deletewf($form_state['values']['wid']);
-    watchdog('workflow', 'Deleted workflow %name with all its states', array('%name' => $workflow_name));
-    drupal_set_message(t('The workflow %name with all its states was deleted.', array('%name' => $workflow_name)));
+    $workflow  = workflow_get_workflows_by_wid($form_state['values']['wid']);
+    workflow_delete_workflows_by_wid($form_state['values']['wid']);
+    watchdog('workflow', 'Deleted workflow %name with all its states', array('%name' => $workflow->name));
+    drupal_set_message(t('The workflow %name with all its states was deleted.', array('%name' => $workflow->name)));
     $form_state['redirect'] = 'admin/config/workflow/workflow';
   }
 }
@@ -233,12 +241,14 @@ function workflow_admin_ui_delete_form_submit($form, &$form_state) {
  *   The ID of the workflow.
  */
 function workflow_admin_ui_view_permissions($wid) {
-  $name = workflow_get_name($wid);
+  $workflow = workflow_get_workflows_by_wid($wid);
+  $name = $workflow->name;
   $all = array();
   $roles = array('author' => t('author')) + user_roles();
   foreach ($roles as $role => $value) {
     $all[$role]['name'] = $value;
   }
+  // TODO return to this, this looks simular to actions stuff (transitions)
   $result = db_query(
     'SELECT t.roles, s1.state AS state_name, s2.state AS target_state_name ' .
     'FROM {workflow_transitions} t ' .
@@ -346,7 +356,7 @@ function workflow_admin_ui_edit_form($form, $form_state, $workflow) {
   );
   $form['tab']['tab_roles'] = array(
     '#type' => 'checkboxes',
-    '#options' => workflow_get_roles(),
+    '#options' => workflow_admin_ui_get_roles(),
     '#default_value' => explode(',', $workflow->tab_roles),
     '#description' => t('Select any roles that should have access to the workflow tab on nodes that have a workflow.'),
   );
@@ -376,14 +386,17 @@ function workflow_admin_ui_edit_form($form, $form_state, $workflow) {
 function theme_workflow_admin_ui_edit_form($variables) {
   $form = $variables['form'];
   $wid = $form['wid']['#value'];
-  drupal_set_title(t('Edit workflow %name', array('%name' => workflow_get_name($wid))), PASS_THROUGH);
+  $workflow = workflow_get_workflows_by_wid($wid);
+  drupal_set_title(t('Edit workflow %name', array('%name' => $workflow->name)), PASS_THROUGH);
   $output = drupal_render($form['wf_name']);
-  $states = workflow_get_states($wid);
+  $states = workflow_get_workflow_states_by_wid($wid);
   if ($states) {
-    $roles = workflow_get_roles();
+    $roles = workflow_admin_ui_get_roles();
     $header = array(array('data' => t('From / To') . ' &nbsp;' . WORKFLOW_ARROW));
     $rows = array();
-    foreach ($states as $state_id => $name) {
+    foreach ($states as $state) {
+      $state_id = $state->sid;
+      $name = $state->name;
       // Don't allow transition TO (creation).
       if ($name != t('(creation)')) {
         $header[] = array('data' => check_plain(t($name)));
@@ -429,7 +442,10 @@ function workflow_admin_ui_edit_form_validate($form_id, $form_state) {
   // Make sure workflow name is not a duplicate.
   if (array_key_exists('wf_name', $form_state['values']) && $form_state['values']['wf_name'] != '') {
     $workflow_name = $form_state['values']['wf_name'];
-    $workflows = array_flip(workflow_get_all());
+    foreach (workflow_get_workflows() as $data) {
+      $workflows[$data->wid] = check_plain(t($data->name));
+    }
+    $workflows = array_flip($workflows);
     if (array_key_exists($workflow_name, $workflows) && $wid != $workflows[$workflow_name]) {
       form_set_error('wf_name', t('A workflow with the name %name already exists. Please enter another name for this workflow.',
         array('%name' => $workflow_name)));
@@ -441,7 +457,7 @@ function workflow_admin_ui_edit_form_validate($form_id, $form_state) {
   }
 
   // Make sure 'author' is checked for (creation) -> [something].
-  $creation_id = _workflow_creation_state($wid);
+  $creation_id = workflow_get_creation_state_by_wid($wid);
   if (isset($form_state['values']['transitions'][$creation_id]) && is_array($form_state['values']['transitions'][$creation_id])) {
     foreach ($form_state['values']['transitions'][$creation_id] as $to => $roles) {
       if ($roles['author']) {
@@ -471,7 +487,13 @@ function workflow_admin_ui_edit_form_submit($form, &$form_state) {
     'comment_log_tab' => $form_state['values']['comment_log_tab'],
     'name_as_title' => $form_state['values']['name_as_title'],
   );
-  workflow_update($form_state['values']['wid'], $form_state['values']['wf_name'], array_filter($form_state['values']['tab_roles']), $options);
+  $workflow = array(
+    'wid' => $form_state['values']['wid'],
+    'name' => $form_state['values']['wf_name'],
+    'tab_roles' =>  array_filter($form_state['values']['tab_roles']),
+    'options' => serialize($options),
+  );
+  workflow_update_workflows($workflow);
   drupal_set_message(t('The workflow was updated.'));
   $form_state['redirect'] = 'admin/config/workflow/workflow';
 }
@@ -489,15 +511,12 @@ function workflow_admin_ui_state_add_form($form, &$form_state, $wid, $sid = NULL
     '#type' => 'value',
     '#value' => $wid,
   );
-  if (isset($sid)) {
-    $state = workflow_get_state($sid);
-    if (isset($state) && $state['status']) {
-      drupal_set_title(t('Edit workflow state %state', array('%state' => $state['state'])), PASS_THROUGH);
-      $form['sid'] = array(
-        '#type' => 'value',
-        '#value' => $sid,
-      );
-    }
+  if ($state = workflow_get_workflow_states_by_sid($sid)) {
+    drupal_set_title(t('Edit workflow state %state', array('%state' => $state->state)), PASS_THROUGH);
+    $form['sid'] = array(
+      '#type' => 'value',
+      '#value' => $sid,
+    );
   }
   // If we don't have a state or db_fetch_array() returned FALSE, load defaults.
   if (!isset($state) || $state === FALSE) {
@@ -505,7 +524,8 @@ function workflow_admin_ui_state_add_form($form, &$form_state, $wid, $sid = NULL
       'state' => '',
       'weight' => 0,
     );
-    drupal_set_title(t('Add a new state to workflow %workflow', array('%workflow' => workflow_get_name($wid))), PASS_THROUGH);
+    $workflow = workflow_get_workflows_by_wid($wid);
+    drupal_set_title(t('Add a new state to workflow %workflow', array('%workflow' => $workflow->name)), PASS_THROUGH);
   }
   $form['state'] = array(
     '#type' => 'textfield',
@@ -537,7 +557,12 @@ function workflow_admin_ui_state_add_form($form, &$form_state, $wid, $sid = NULL
  */
 function workflow_admin_ui_state_add_form_validate($form, &$form_state) {
   $state_name = $form_state['values']['state'];
-  $wf_states = array_flip(workflow_get_states($form_state['values']['wid']));
+  $states = workflow_get_workflow_states_by_wid($form_state['values']['wid']);
+  $workflow_states = array();
+  foreach ($states as $state) {
+    $workflow_states[$state->sid] = $state->name;
+  }
+  $workflow_states = array_flip($workflow_states);
   if (array_key_exists('sid', $form_state['values'])) {
     // Validate changes to existing state:
     // Make sure a nonblank state name is provided.
@@ -545,7 +570,7 @@ function workflow_admin_ui_state_add_form_validate($form, &$form_state) {
       form_set_error('state', t('Please provide a nonblank name for this state.'));
     }
     // Make sure changed state name is not a duplicate
-    if (array_key_exists($state_name, $wf_states) && $form_state['values']['sid'] != $wf_states[$state_name]) {
+    if (array_key_exists($state_name, $workflow_states) && $form_state['values']['sid'] != $workflow_states[$state_name]) {
       form_set_error('state', t('A state with the name %state already exists in this workflow. Please enter another name for ' .
       'this state.', array('%state' => $state_name)));
     }
@@ -557,7 +582,7 @@ function workflow_admin_ui_state_add_form_validate($form, &$form_state) {
       form_set_error('state', t('Please provide a nonblank name for the new state.'));
     }
     // Make sure state name is not a duplicate
-    if (array_key_exists($state_name, $wf_states)) {
+    if (array_key_exists($state_name, $workflow_states)) {
       form_set_error('state', t('A state with the name %state already exists in this workflow. Please enter another name for ' .
       'your new state.', array('%state' => $state_name)));
     }
@@ -570,7 +595,15 @@ function workflow_admin_ui_state_add_form_validate($form, &$form_state) {
  * @see workflow_state_add_form()
  */
 function workflow_admin_ui_state_add_form_submit($form, &$form_state) {
-  $form_state['sid'] = workflow_state_save($form_state['values']);
+  $data = array(
+    'sid' => $form_state['sid'],
+    'wid' => $form_state['wid'],
+    'state' => $form_state['state'],
+    'sysid' => $form_state['sysid'],
+    'weight' => $form_state['weight'],
+  );
+  workflow_update_workflow_states($data);
+  $form_state['sid'] = $data->sid;
   if (array_key_exists('sid', $form_state['values'])) {
     drupal_set_message(t('The workflow state was updated.'));
   }
@@ -589,9 +622,8 @@ function workflow_admin_ui_state_add_form_submit($form, &$form_state) {
  */
 function workflow_admin_ui_transition_grid_form($wid) {
   $form = array();
-
-  $roles = workflow_get_roles();
-  $states = workflow_get_states($wid);
+  $roles = workflow_admin_ui_get_roles();
+  $states = workflow_get_workflow_states_by_wid($wid);
   if (!$states) {
     $form = array(
       '#type' => 'markup',
@@ -599,8 +631,12 @@ function workflow_admin_ui_transition_grid_form($wid) {
     );
     return $form;
   }
-  foreach ($states as $state_id => $name) {
-    foreach ($states as $nested_state_id => $nested_name) {
+  foreach ($states as $state1) {
+    $state_id = $state1->sid;
+    $name = $state1->name;
+    foreach ($states as $state2) {
+      $nested_state_id = $state2->sid;
+      $nested_name = $state2->name;
       if ($nested_name == t('(creation)')) {
         // Don't allow transition TO (creation).
         continue;
@@ -610,11 +646,11 @@ function workflow_admin_ui_transition_grid_form($wid) {
         $from = $state_id;
         $to = $nested_state_id;
         foreach ($roles as $rid => $role_name) {
-          $tid = workflow_get_transition_id($from, $to);
+          $transition = workflow_get_workflow_transitions_by_sid_target_sid($from, $to);
           $form[$from][$to][$rid] = array(
             '#type' => 'checkbox',
             '#title' => check_plain($role_name),
-            '#default_value' => $tid ? workflow_transition_allowed($tid, $rid) : FALSE,
+            '#default_value' => $transition->tid ? workflow_transition_allowed($transition->tid, $rid) : FALSE,
           );
         }
       }
@@ -628,9 +664,13 @@ function workflow_admin_ui_transition_grid_form($wid) {
  * of workflows and workflow states.
  */
 function workflow_admin_ui_overview() {
-  $workflows = workflow_get_all();
+  foreach (workflow_get_workflows() as $data) {
+    $workflows[$data->wid] = check_plain(t($data->name));
+  }
   $row = array();
-  foreach ($workflows as $wid => $name) {
+  foreach ($workflows as $workflow) {
+    $wid = $workflow->wid;
+    $name = $workflow->name;
     $links = array(
       'workflow_overview_add_state' => array(
         'title' => t('Add state'),
@@ -647,12 +687,14 @@ function workflow_admin_ui_overview() {
     );
     // Allow modules to insert their own workflow operations.
     $links = array_merge($links, module_invoke_all('workflow_operations', 'workflow', $wid));
-    $states = workflow_get_states($wid);
+    $states = workflow_get_workflow_states_by_wid($wid);
     $row[] = array(check_plain(t($name)), theme('links', array('links' => $links)));
     $subrows = array();
-    foreach ($states as $sid => $state_name) {
+    foreach ($states as $state) {
+      $sid = $state->sid;
+      $state_name = $state->name;
       $state_links = array();
-      if (!workflow_is_system_state(check_plain(t($state_name)))) {
+      if (!$state_name == t('(creation)')) {
         $state_links = array(
           'workflow_overview_edit_state' => array(
             'title' => t('Edit'),
@@ -705,25 +747,34 @@ function workflow_admin_ui_overview() {
  *   HTML form.
  */
 function workflow_admin_ui_state_delete_form($form, $form_state, $wid, $sid) {
-  $states = workflow_get_states($wid);
-  $state_name = $states[$sid];
+  // Potential new parent states.
+  $states = workflow_get_workflow_states_by_wid($wid);
+  // State to delete.
+  $delete_state = workflow_get_workflow_states_by_sid($sid);
   // Will any nodes have no state if this state is deleted?
-  if ($count = db_query("SELECT COUNT(nid) FROM {workflow_node} WHERE sid = :sid", array(':sid' => $sid))->fetchField()) {
-    // Cannot assign a node to (creation) because that implies
-    // that the node does not exist.
-    $key = array_search(t('(creation)'), $states);
-    unset($states[$key]);
-    // Don't include the state to be deleted in our list of possible
-    // states that can be assigned.
-    unset($states[$sid]);
-    if ($states) {
+  if (workflow_get_workflow_node_by_sid($sid)) {
+    // Cannot assign a node to (creation) because that implies that the node does not exist.
+    // Don't include the state to be deleted in our list of possible states that can be assigned.
+    foreach ($states as $key => $state) {
+      if ($state->name == t('(creation)')) {
+        unset($states[$key]);
+      }
+      if ($state->sid == $sid) {
+        unset($states[$key]);
+      }
+    }
+    if (count($states) > 0) {
+      $state_options = array();
+      foreach ($states as $key => $state) {
+        $state_options[$key] = $state->name; 
+      }
       $form['new_sid'] = array(
         '#type' => 'select',
         '#title' => t('State to be assigned to orphaned nodes'),
         '#description' => format_plural($count, 'Since you are deleting a workflow state, a node which is in that state will be orphaned, ' .
       'and must be reassigned to a new state. Please choose the new state.', 'Since you are deleting a workflow state, @count nodes which ' .
       'are in that state will be orphaned, and must be reassigned to a new state. Please choose the new state.'),
-        '#options' => $states,
+        '#options' => $state_options,
       );
     }
     else {
@@ -744,7 +795,7 @@ function workflow_admin_ui_state_delete_form($form, $form_state, $wid, $sid) {
   );
   return confirm_form(
     $form,
-    t('Are you sure you want to delete %title (and all its transitions)?', array('%title' => $state_name)),
+    t('Are you sure you want to delete %title (and all its transitions)?', array('%title' => $delete_state->state_name)),
     !empty($_GET['destination']) ? $_GET['destination'] : 'admin/config/workflow/workflow',
     t('This action cannot be undone.'),
     t('Delete'),
@@ -754,17 +805,15 @@ function workflow_admin_ui_state_delete_form($form, $form_state, $wid, $sid) {
 
 /**
  * Submit handler for workflow state deletion form.
- *
- * @see workflow_state_delete_form()
  */
 function workflow_admin_ui_state_delete_form_submit($form, &$form_state) {
-  $states = workflow_get_states($form_state['values']['wid']);
-  $state_name = $states[$form_state['values']['sid']];
+  $state = workflow_get_workflow_states_by_sid($form_state['values']['sid']);
   if ($form_state['values']['confirm'] == 1) {
     $new_sid = isset($form_state['values']['new_sid']) ? $form_state['values']['new_sid'] : NULL;
-    workflow_state_delete($form_state['values']['sid'], $new_sid);
-    watchdog('workflow', 'Deleted workflow state %name', array('%name' => $state_name));
-    drupal_set_message(t('The workflow state %name was deleted.', array('%name' => $state_name)));
+    // Delete the old state without orphaning nodes, move them to the new state.
+    workflow_delete_workflow_states_by_sid($form_state['values']['sid'], $new_sid);
+    watchdog('workflow', 'Deleted workflow state %name', array('%name' => $state->state_name));
+    drupal_set_message(t('The workflow state %name was deleted.', array('%name' => $state->state_name)));
   }
   $form_state['redirect'] = 'admin/config/workflow/workflow';
 }
@@ -775,13 +824,16 @@ function workflow_admin_ui_state_delete_form_submit($form, &$form_state) {
  */
 function workflow_admin_ui_types_form($form) {
   $form = array();
-  $workflows = array(t('None')) + workflow_get_all();
+  $these_workflows = array();
+  foreach (workflow_get_workflows() as $data) {
+    $these_workflows[$data->wid] = check_plain(t($data->name));
+  }
+  $workflows = array(t('None')) + $these_workflows;
   if (count($workflows) == 0) {
     return $form;
   }
   $type_map = array();
-  $result = db_query("SELECT wid, type FROM {workflow_type_map}");
-  foreach ($result as $data) {
+  foreach (workflow_get_workflow_type_map() as $data) {
     $type_map[$data->type] = $data->wid;
   }
   $form['#theme'] = 'workflow_admin_ui_types_form';
@@ -841,4 +893,86 @@ function workflow_admin_ui_types_form_submit($form, &$form_state) {
   drupal_set_message(t('The workflow mapping was saved.'));
   menu_rebuild();
   $form_state['redirect'] = 'admin/config/workflow/workflow';
+}
+
+/**
+ * Get a list of roles.
+ *
+ * @return
+ *   Array of role names keyed by role ID, including the 'author' role.
+ */
+function workflow_admin_ui_get_roles() {
+  static $roles = NULL;
+  if (!$roles) {
+    $roles = array('author' => 'author');
+    foreach (user_roles() as $rid => $name) {
+      $roles[$rid] = check_plain($name);
+    }
+  }
+  return $roles;
+}
+
+/**
+ * Save mapping of workflow to node type. E.g., "the story node type
+ * is using the Foo workflow."
+ *
+ * @param $form_state['values']
+ */
+function workflow_types_save($form_values) {
+  workflow_delete_workflow_type_map_all();
+  $node_types = node_type_get_types();
+  foreach ($node_types as $type => $name) {
+    $data = array(
+      'type' => $type,
+      'wid' => $form_values[$type]['workflow'],
+    );
+    workflow_insert_workflow_type_map($data);
+    variable_set('workflow_' . $type, array_keys(array_filter(($form_values[$type]['placement']))));
+  }
+}
+
+/**
+ * Update the transitions for a workflow.
+ *
+ * @param array $transitions from values.
+ *   Transitions, for example:
+ *     18 => array(
+ *       20 => array(
+ *         'author' => 1,
+ *         1        => 0,
+ *         2        => 1,
+ *       )
+ *     )
+ *   means the transition from state 18 to state 20 can be executed by
+ *   the node author or a user in role 2. The $transitions array should
+ *   contain ALL transitions for the workflow.
+ */
+function workflow_update_transitions($transitions = array()) {
+  // Empty string is sometimes passed in instead of an array.
+  if (!$transitions) {
+    return;
+  }
+  foreach ($transitions as $from => $to_data) {
+    foreach ($to_data as $to => $role_data) {
+      foreach ($role_data as $role => $can_do) {
+        if ($can_do) {
+          $transition = array(
+            'sid' => $from,
+            'target_sid' => $to,
+            'roles' => $role,
+          );
+          workflow_update_workflow_transitions($transition);
+        }
+        else {
+          $transition = workflow_get_workflow_transitions_by_sid_target_sid($from, $to);
+          $roles = explode(',', $transition->roles);
+          if (($i = array_search($role, $roles)) !== FALSE) {
+            unset($roles[$i]);
+            workflow_update_workflow_transitions_roles($tid, $roles);
+          }
+        }
+      }
+    }
+  }
+  workflow_delete_workflow_transitions_by_roles('');
 }

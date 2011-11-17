@@ -10,29 +10,22 @@
  */
 function workflow_tab_page($node = NULL) {
   drupal_set_title($node->title);
-  $wid = workflow_get_workflow_for_type($node->type);
-  $states_per_page = variable_get('workflow_states_per_page', 20);
-  $result = db_query("SELECT sid, state FROM {workflow_states} WHERE status = 1 ORDER BY sid");
-  foreach ($result as $data) {
+  $workflow = workflow_get_workflow_type_map_by_type($node->type);
+  foreach (workflow_get_workflow_states() as $data) {
     $states[$data->sid] = check_plain(t($data->state));
   }
   $deleted_states = array();
-  $result = db_query("SELECT sid, state FROM {workflow_states} WHERE status = 0 ORDER BY sid");
-  foreach ($result as $data) {
+  $options = array('status' => 0);
+  foreach (workflow_get_workflow_states($options) as $data) {
     $deleted_states[$data->sid] = check_plain(t($data->state));
   }
   $current = workflow_node_current_state($node);
   // theme_workflow_current_state() must run state through check_plain().
   $current_state = theme('workflow_current_state', array('state_name' => $states[$current]));
   $output = '<p>' . t('Current state: !state', array('!state' => $current_state)) . "</p>\n";
-  $output .= drupal_render(drupal_get_form('workflow_tab_form', $node, $wid, $states, $current));
-  $pager_query = db_select('workflow_node_history', 'h')->extend('PagerDefault');
-  $pager_query->leftJoin('users', 'u', 'h.uid = u.uid');
-  $pager_query->condition('nid', $node->nid)->orderBy('hid', 'DESC')->limit($states_per_page);
-  $pager_query->fields('h')->addField('u', 'name');
-  $result = $pager_query->execute();
+  $output .= drupal_render(drupal_get_form('workflow_tab_form', $node, $workflow->wid, $states, $current));
   $rows = array();
-  foreach ($result as $history) {
+  foreach (workflow_get_workflow_node_history_by_nid($node->nid) as $history) {
     if ($history->sid == $current && !isset($deleted_states[$history->sid]) && !isset($current_themed)) {
       // Theme the current state differently so it stands out.
       $state_name = theme('workflow_current_state',  array('state_name' => $states[$history->sid]));
@@ -49,7 +42,6 @@ function workflow_tab_page($node = NULL) {
       // Regular state.
       $state_name = check_plain(t($states[$history->sid]));
     }
-
     if (isset($deleted_states[$history->old_sid])) {
       $old_state_name = theme('workflow_deleted_state', array('deleted_state' => $deleted_states[$history->old_sid]));
       $footer_needed = TRUE;
@@ -131,8 +123,7 @@ function workflow_tab_form($form_id, $form_state, $node, $wid, $states, $current
   $min = $states[$current] == t('(creation)') ? 1 : 2;
   // Only build form if user has possible target state(s).
   if (count($choices) >= $min) {
-    $wid = workflow_get_workflow_for_type($node->type);
-    $workflow = workflow_load($wid);
+    $workflow = workflow_get_workflow_type_map_by_type($node->type);
     $form['#wf'] = $workflow;
     $name = check_plain((t($workflow->name)));
     $timestamp = '';
