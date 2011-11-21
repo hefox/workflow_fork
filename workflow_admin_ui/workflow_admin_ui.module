@@ -341,16 +341,16 @@ function workflow_admin_ui_edit_form($form, $form_state, $wid) {
   $form['comment']['comment_log_node'] = array(
     '#type' => 'checkbox',
     '#title' => t('Show a comment field in the workflow section of the editing form.'),
-    '#default_value' => $workflow->options['comment_log_node'],
-    '#description' => t("On the node editing form, a Comment form can be shown so that the person making the state change can record ' .
-      'reasons for doing so. The comment is then included in the node's workflow history."),
+    '#default_value' => isset($workflow->options['comment_log_node']) ? $workflow->options['comment_log_node'] : 0,
+    '#description' => t('On the node editing form, a Comment form can be shown so that the person making the state change can record ' .
+      "reasons for doing so. The comment is then included in the node's workflow history."),
   );
   $form['comment']['comment_log_tab'] = array(
     '#type' => 'checkbox',
     '#title' => t('Show a comment field in the workflow section of the workflow tab form.'),
-    '#default_value' => $workflow->options['comment_log_tab'],
-    '#description' => t("On the workflow tab, a Comment form can be shown so that the person making the state change can record ' .
-      'reasons for doing so. The comment is then included in the node's workflow history."),
+    '#default_value' => isset($workflow->options['comment_log_tab']) ? $workflow->options['comment_log_tab'] : 0,
+    '#description' => t('On the workflow tab, a Comment form can be shown so that the person making the state change can record ' .
+      "reasons for doing so. The comment is then included in the node's workflow history."),
   );
   $form['tab'] = array(
     '#type' => 'fieldset',
