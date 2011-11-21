@@ -840,7 +840,7 @@ function workflow_transition_allowed($tid, $role = NULL) { // This might could u
 function workflow_get_creation_state_by_wid($wid) {
   $options = array(':sysid' => WORKFLOW_CREATION);
   $result = workflow_get_workflow_states_by_wid($wid, $options);
-  return $result[0]->sid;
+  return isset($result[0]->sid) ? $result[0]->sid : 0;
 }
 
 /**
@@ -871,9 +871,11 @@ function workflow_get_workflows() {
  */
 function workflow_get_workflows_by_wid($wid) {
   $results = db_query("SELECT * FROM {workflows} WHERE wid = :wid", array(':wid' => $wid));
-  $workflow = $results->fetchObject();
-  $workflow->options = unserialize($workflow->options);
-  return $workflow;
+  if ($workflow = $results->fetchObject()) {
+    $workflow->options = unserialize($workflow->options);
+    return $workflow;
+  }
+  return FALSE;
 }
 
 /**
@@ -940,9 +942,11 @@ function workflow_get_workflow_type_map() {
  * Currently this is a unique result but requests have been made to allow a node to have multiple
  * workflows. This is trickier than it sounds as a lot of our processing code will have to be
  * tweaked to account for multiple results.
+ * ALERT: If a node type is *not* mapped to a workflow it will be listed as wid 0.
+ * Hence, we filter out the non-mapped results.
  */
 function workflow_get_workflow_type_map_by_type($type) {
-  $results = db_query("SELECT * FROM {workflow_type_map} WHERE type = :type", array(':type' => $type));
+  $results = db_query("SELECT * FROM {workflow_type_map} WHERE type = :type AND wid != 0", array(':type' => $type));
   return $results->fetchObject();
 }
 
