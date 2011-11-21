@@ -156,22 +156,22 @@ function workflow_actions_trigger_info() {
   $trigger_page = drupal_substr($_GET['q'], 0, 28) == 'admin/structure/trigger/workflow';
   // TODO these should be pulled into their own DB function calls.
   if ($trigger_page && $wid = arg(4)) {
-    $result = db_query("SELECT tm.type, w.wid, w.name, ws.state, wt.tid, wt.sid, wt.target_sid " .
-      "FROM {workflow_type_map} tm " .
-      "LEFT JOIN {workflows} w ON tm.wid = w.wid " .
-      "LEFT JOIN {workflow_states} ws ON w.wid = ws.wid " .
-      "LEFT JOIN {workflow_transitions} wt ON ws.sid = wt.sid " .
-      "WHERE w.wid = :wid AND ws.status = 1 AND wt.target_sid IS NOT NULL " .
-      "ORDER BY tm.type, ws.weight", array(':wid' => $wid));
+    $result = db_query('SELECT tm.type, w.wid, w.name, ws.state, wt.tid, wt.sid, wt.target_sid ' .
+      'FROM {workflow_type_map} tm ' .
+      'LEFT JOIN {workflows} w ON tm.wid = w.wid ' .
+      'LEFT JOIN {workflow_states} ws ON w.wid = ws.wid ' .
+      'LEFT JOIN {workflow_transitions} wt ON ws.sid = wt.sid ' .
+      'WHERE w.wid = :wid AND ws.status = 1 AND wt.target_sid IS NOT NULL ' .
+      'ORDER BY tm.type, ws.weight', array(':wid' => $wid));
   }
   else {
-    $result = db_query("SELECT tm.type, w.wid, w.name, ws.state, wt.tid, wt.sid, wt.target_sid " .
-    "FROM {workflow_type_map} tm " .
-    "LEFT JOIN {workflows} w ON tm.wid = w.wid " .
-    "LEFT JOIN {workflow_states} ws ON w.wid = ws.wid " .
-    "LEFT JOIN {workflow_transitions} wt ON ws.sid = wt.sid " .
-    "WHERE ws.status = 1 AND wt.target_sid IS NOT NULL " .
-    "ORDER BY tm.type, ws.weight");
+    $result = db_query('SELECT tm.type, w.wid, w.name, ws.state, wt.tid, wt.sid, wt.target_sid ' .
+    'FROM {workflow_type_map} tm ' .
+    'LEFT JOIN {workflows} w ON tm.wid = w.wid ' .
+    'LEFT JOIN {workflow_states} ws ON w.wid = ws.wid ' .
+    'LEFT JOIN {workflow_transitions} wt ON ws.sid = wt.sid ' .
+    'WHERE ws.status = 1 AND wt.target_sid IS NOT NULL ' .
+    'ORDER BY tm.type, ws.weight');
   }
   foreach ($result as $data) {
     $pseudohooks['workflow-' . $data->type . '-' . $data->tid] =
@@ -253,7 +253,7 @@ function workflow_actions_workflow($op, $old_state, $new_state, $node) {
 function workflow_actions_workflow_operations($level, $wid) {
   return array('workflow_overview_actions' => array(
     'title' => t('Actions'),
-    'href' => "admin/structure/trigger/workflow/$wid"),
+    'href' => 'admin/structure/trigger/workflow/' . $wid),
   );
 }
 
@@ -293,7 +293,7 @@ function workflow_actions_remove($tid, $aid) {
  * Get all trigger assingments for workflow.
  */
 function workflow_actions_get_trigger_assignments() {
-  $results = db_query("SELECT hook FROM {trigger_assignments} WHERE hook = 'workflow'");
+  $results = db_query('SELECT hook FROM {trigger_assignments} WHERE hook = "workflow"');
   return $results->fetchAll();
 }
 
@@ -301,7 +301,7 @@ function workflow_actions_get_trigger_assignments() {
  * Get all trigger assignements for workflow and a given action.
  */
 function workflow_actions_get_trigger_assignments_by_aid($aid) {
-  $results = db_query("SELECT hook FROM {trigger_assignments} WHERE hook = 'workflow' AND aid = ':aid'", array(':aid' => $aid));
+  $results = db_query('SELECT hook FROM {trigger_assignments} WHERE hook = "workflow" AND aid = ":aid"', array(':aid' => $aid));
   return $results->fetchAll();
 }
 
@@ -316,7 +316,7 @@ function workflow_actions_delete_trigger_assignments_by_aid_op($aid, $op) {
  * Get a specific action.
  */
 function workflow_actions_get_actions_by_aid($aid) {
-  $results = db_query("SELECT * FROM {actions} WHERE aid = ':aid'", array(':aid' => $aid));
+  $results = db_query('SELECT * FROM {actions} WHERE aid = ":aid"', array(':aid' => $aid));
   return $results->fetchAll();
 }
 
@@ -330,11 +330,11 @@ function workflow_actions_get_actions_by_tid($tid) {
     // Transition ID is the last part, e.g., foo-bar-1.
     $transition = array_pop(explode('-', $data->hook));
     if ($tid == $transition) {
-      // Specialized, TODO later
-      $results = db_query("SELECT aa.aid, a.type FROM {trigger_assignments} aa " .
-        "LEFT JOIN {actions} a ON aa.aid = a.aid " .
-        "WHERE aa.hook = 'workflow' AND aa.hook = ':hook' " .
-        "ORDER BY weight", array(':hook' => $data->hook));
+      // Specialized, TODO seprate this SQL out later
+      $results = db_query('SELECT aa.aid, a.type FROM {trigger_assignments} aa ' .
+        'LEFT JOIN {actions} a ON aa.aid = a.aid ' .
+        'WHERE aa.hook = ":hook" ' .
+        'ORDER BY weight', array(':hook' => $data->hook));
       foreach ($results as $action) {
         $aids[$action->aid]['type'] = $action->type;
       }
