@@ -719,7 +719,7 @@ function workflow_admin_ui_overview() {
     $subrows = array();
     foreach ($states as $state) {
       $state_links = array();
-      if (!($state_name == t('(creation)'))) {
+      if (!($state->state == t('(creation)'))) {
         $state_links = array(
           'workflow_overview_edit_state' => array(
             'title' => t('Edit'),
