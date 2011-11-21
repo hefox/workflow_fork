@@ -146,10 +146,11 @@ function workflow_select_given_state_action_submit($form_id, $form_state) {
  * Expose each transition as a hook.
  */
 function workflow_actions_trigger_info() {
+  $states = array();
   foreach (workflow_get_workflow_states() as $data) {
     $states[$data->sid] = check_plain($data->state);
   }
-  if (!$states) {
+  if (empty($states)) {
     return array();
   }
   $trigger_page = drupal_substr($_GET['q'], 0, 28) == 'admin/structure/trigger/workflow';

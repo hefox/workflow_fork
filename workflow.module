@@ -70,23 +70,21 @@ function workflow_menu() {
  */
 function workflow_node_tab_access($node = NULL) {
   global $user;
-  $workflow = workflow_get_workflow_type_map_by_type($node->type);
-  if (!$workflow) {
-    // No workflow associated with this node type.
-    return FALSE;
+  if ($workflow = workflow_get_workflow_type_map_by_type($node->type)) {
+    $workflow = workflow_get_workflows_by_wid($workflow->wid);
+    $roles = array_keys($user->roles);
+    if ($node->uid == $user->uid) {
+      $roles = array_merge(array('author'), $roles);
+    }
+    $allowed_roles = $workflow->tab_roles ? explode(',', $workflow->tab_roles) : array();
+    if (user_access('administer nodes') || array_intersect($roles, $allowed_roles)) {
+      return TRUE;
+    }
+    else {
+      return FALSE;
+    }
   }
-  $workflow = workflow_get_workflows_by_wid($workflow->wid);
-  $roles = array_keys($user->roles);
-  if ($node->uid == $user->uid) {
-    $roles = array_merge(array('author'), $roles);
-  }
-  $allowed_roles = $workflow->tab_roles ? explode(',', $workflow->tab_roles) : array();
-  if (user_access('administer nodes') || array_intersect($roles, $allowed_roles)) {
-    return TRUE;
-  }
-  else {
-    return FALSE;
-  }
+  return FALSE;
 }
 
 /**
@@ -186,65 +184,63 @@ function workflow_tokens($type, $tokens, array $data = array(), array $options =
     case 'node':
     case 'workflow':
       $node = $data['node'];
-      $workflow = workflow_get_workflow_type_map_by_type($node->type);
-      if (!$workflow) {
-        break;
-      }
-      $wid = $workflow->wid;
-      $values['workflow-name'] = $workflow->name;
-      $last_history = workflow_get_workflow_node_history_by_nid($node->nid, 1);
-      $account = user_load($last_history->uid);
-      $comment = $last_history->comment;
-      if (isset($node->workflow) && !isset($node->workflow_stamp)) {
-        // The node is being submitted but the form data has not been saved to the database yet,
-        // so we set the token values from the workflow form fields.
-        $sid = $node->workflow;
-        $old_sid = isset($last_history->sid) ? $last_history->sid : workflow_get_creation_state_by_wid($workflow->wid);
-        $sid = workflow_get_workflow_states_by_sid($sid);
-        $old_sid = workflow_get_workflow_states_by_sid($old_sid);
-        $date = REQUEST_TIME;
-        $user_name = $node->uid ? $node->name : variable_get('anonymous', 'Anonymous');
-        $uid = $node->uid;
-        $mail = $node->uid ? $node->user_mail : '';
-        $comment = isset($node->workflow_comment) ? $node->workflow_comment : '';
-      }
-      elseif (!isset($node->workflow) && empty($last_history->sid)) {
-        // If the state is not specified and the node has no workflow history,
-        // the node is being inserted and will soon be transitioned to the first valid state.
-        // We find this state using the same logic as workflow_nodeapi().
-        $choices = workflow_field_choices($node);
-        $keys = array_keys($choices);
-        $sid = array_shift($keys);
-        $old_sid = workflow_get_creation_state_by_wid($workflow->wid);
-        $sid = workflow_get_workflow_states_by_sid($sid);
-        $old_sid = workflow_get_workflow_states_by_sid($old_sid);
-        $date = REQUEST_TIME;
-        $user_name = $node->uid ? $node->name : variable_get('anonymous', 'Anonymous');
-        $uid = $node->uid;
-        $mail = $node->uid ? $node->user_mail : '';
-        $comment = isset($node->workflow_comment) ? $node->workflow_comment : '';
-      }
-      else {
-        // Default to the most recent transition data in the workflow history table.
-        $sid = $last_history->sid;
-        $old_sid = $last_history->old_sid;
-        $sid = workflow_get_workflow_states_by_sid($sid);
-        $old_sid = workflow_get_workflow_states_by_sid($old_sid);
-        $date = $last_history->stamp;
-        $user_name = $account->uid ? $account->name : variable_get('anonymous', 'Anonymous');
-        $uid = $account->uid;
-        $mail = $account->uid ? $account->mail : '';
-      }
-      $values['workflow-current-state-name']                =  $sid->name;
-      $values['workflow-old-state-name']                    =  $old_sid->name;
-      $values['workflow-current-state-date-iso']            =  date('Ymdhis', $date);
-      $values['workflow-current-state-date-tstamp']         =  $date;
-      $values['workflow-current-state-date-formatted']      =  date('M d, Y h:i:s', $date);
-      $values['workflow-current-state-updating-user-name']  = check_plain($user_name);
-      $values['workflow-current-state-updating-user-uid']   = $uid;
-      $values['workflow-current-state-updating-user-mail']  = check_plain($mail);
-      $values['workflow-current-state-log-entry']           = filter_xss($comment, array('a', 'em', 'strong'));
-      break;
+      if ($workflow = workflow_get_workflow_type_map_by_type($node->type)) {
+        $wid = $workflow->wid;
+        $values['workflow-name'] = $workflow->name;
+        $last_history = workflow_get_workflow_node_history_by_nid($node->nid, 1);
+        $account = user_load($last_history->uid);
+        $comment = $last_history->comment;
+        if (isset($node->workflow) && !isset($node->workflow_stamp)) {
+          // The node is being submitted but the form data has not been saved to the database yet,
+          // so we set the token values from the workflow form fields.
+          $sid = $node->workflow;
+          $old_sid = isset($last_history->sid) ? $last_history->sid : workflow_get_creation_state_by_wid($workflow->wid);
+          $sid = workflow_get_workflow_states_by_sid($sid);
+          $old_sid = workflow_get_workflow_states_by_sid($old_sid);
+          $date = REQUEST_TIME;
+          $user_name = $node->uid ? $node->name : variable_get('anonymous', 'Anonymous');
+          $uid = $node->uid;
+          $mail = $node->uid ? $node->user_mail : '';
+          $comment = isset($node->workflow_comment) ? $node->workflow_comment : '';
+        }
+        elseif (!isset($node->workflow) && empty($last_history->sid)) {
+          // If the state is not specified and the node has no workflow history,
+          // the node is being inserted and will soon be transitioned to the first valid state.
+          // We find this state using the same logic as workflow_nodeapi().
+          $choices = workflow_field_choices($node);
+          $keys = array_keys($choices);
+          $sid = array_shift($keys);
+          $old_sid = workflow_get_creation_state_by_wid($workflow->wid);
+          $sid = workflow_get_workflow_states_by_sid($sid);
+          $old_sid = workflow_get_workflow_states_by_sid($old_sid);
+          $date = REQUEST_TIME;
+          $user_name = $node->uid ? $node->name : variable_get('anonymous', 'Anonymous');
+          $uid = $node->uid;
+          $mail = $node->uid ? $node->user_mail : '';
+          $comment = isset($node->workflow_comment) ? $node->workflow_comment : '';
+        }
+        else {
+          // Default to the most recent transition data in the workflow history table.
+          $sid = $last_history->sid;
+          $old_sid = $last_history->old_sid;
+          $sid = workflow_get_workflow_states_by_sid($sid);
+          $old_sid = workflow_get_workflow_states_by_sid($old_sid);
+          $date = $last_history->stamp;
+          $user_name = $account->uid ? $account->name : variable_get('anonymous', 'Anonymous');
+          $uid = $account->uid;
+          $mail = $account->uid ? $account->mail : '';
+        }
+        $values['workflow-current-state-name']                =  $sid->name;
+        $values['workflow-old-state-name']                    =  $old_sid->name;
+        $values['workflow-current-state-date-iso']            =  date('Ymdhis', $date);
+        $values['workflow-current-state-date-tstamp']         =  $date;
+        $values['workflow-current-state-date-formatted']      =  date('M d, Y h:i:s', $date);
+        $values['workflow-current-state-updating-user-name']  = check_plain($user_name);
+        $values['workflow-current-state-updating-user-uid']   = $uid;
+        $values['workflow-current-state-updating-user-mail']  = check_plain($mail);
+        $values['workflow-current-state-log-entry']           = filter_xss($comment, array('a', 'em', 'strong'));
+    }
+    break;
   }
   return $values;
 }
@@ -787,8 +783,9 @@ function workflow_node_current_state($node) {
   }
   if (!$state && !empty($node->type)) {
     // No current state. Use creation state.
-    $workflow = workflow_get_workflow_type_map_by_type($node->type);
-    $sid = workflow_get_creation_state_by_wid($workflow->wid);
+    if( $workflow = workflow_get_workflow_type_map_by_type($node->type)) {
+      $sid = workflow_get_creation_state_by_wid($workflow->wid);
+     }
   }
   return $sid;
 }
@@ -804,8 +801,10 @@ function workflow_node_previous_state($node) {
   }
   if (!$sid && !empty($node->type)) {
     // No current state. Use creation state.
-    $workflow = workflow_get_workflow_type_map_by_type($node->type);
-    $sid = workflow_get_creation_state_by_wid($workflow->wid);
+    $sid = FALSE;
+    if ($workflow = workflow_get_workflow_type_map_by_type($node->type)) {
+      $sid = workflow_get_creation_state_by_wid($workflow->wid);
+    }
   }
   return $sid;
 }
