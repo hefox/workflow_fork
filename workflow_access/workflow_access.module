@@ -202,7 +202,7 @@ function workflow_access_workflow($op, $old_sid, $sid, $node) {
  * Given a sid, retrieve the access information and return the row(s).
  */
 function workflow_access_get_workflow_access_by_sid($sid) {
-  $results = db_query("SELECT * from {workflow_access} where sid = :sid", array(':sid' => $sid));
+  $results = db_query('SELECT * from {workflow_access} where sid = :sid', array(':sid' => $sid));
   return $results->fetchAll();
 }
 
