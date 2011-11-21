@@ -22,7 +22,7 @@ function workflow_tab_page($node = NULL) {
   $current = workflow_node_current_state($node);
   // theme_workflow_current_state() must run state through check_plain().
   $current_state = theme('workflow_current_state', array('state_name' => $states[$current]));
-  $output = '<p>' . t('Current state: !state', array('!state' => $current_state)) . "</p>\n";
+  $output = '<p>' . t('Current state: !state', array('!state' => $current_state)) . '</p>\n';
   $output .= drupal_render(drupal_get_form('workflow_tab_form', $node, $workflow->wid, $states, $current));
   $rows = array();
   foreach (workflow_get_workflow_node_history_by_nid($node->nid) as $history) {

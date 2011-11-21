@@ -255,43 +255,43 @@ function workflow_token_info() {
     'needs-data' => 'node',
   );
   $tokens['workflow-name'] = array(
-    'name' => t("Workflow name"),
+    'name' => t('Workflow name'),
     'description' => t('Name of workflow appied to this node'),
   );
   $tokens['workflow-current-state-name'] = array(
-    'name' => t("Current state name"),
+    'name' => t('Current state name'),
     'description' => t('Current state of content'),
   );
   $tokens['workflow-old-state-name'] = array(
-    'name' => t("Old state name"),
+    'name' => t('Old state name'),
     'description' => t('Old state of content'),
   );
   $tokens['workflow-current-state-date-iso'] = array(
-    'name' => t("Current state date (ISO)"),
+    'name' => t('Current state date (ISO)'),
     'description' => t('Date of last state change (ISO)'),
   );
   $tokens['workflow-current-state-date-tstamp'] = array(
-    'name' => t("Current state date (timestamp)"),
+    'name' => t('Current state date (timestamp)'),
     'description' => t('Date of last state change (timestamp)'),
   );
   $tokens['workflow-current-state-date-formatted'] = array(
-    'name' => t("Current state date (formated - M d, Y h:i:s)"),
+    'name' => t('Current state date (formated - M d, Y h:i:s)'),
     'description' => t('Date of last state change (formated - M d, Y h:i:s)'),
   );
   $tokens['workflow-current-state-updating-user-name'] = array(
-    'name' => t("Username of last state changer"),
+    'name' => t('Username of last state changer'),
     'description' => t('Username of last state changer'),
   );
   $tokens['workflow-current-state-updating-user-uid'] = array(
-    'name' => t("Uid of last state changer"),
+    'name' => t('Uid of last state changer'),
     'description' => t('uid of last state changer'),
   );
   $tokens['workflow-current-state-updating-user-mail'] = array(
-    'name' => t("Email of last state changer"),
+    'name' => t('Email of last state changer'),
     'description' => t('email of last state changer'),
   );
   $tokens['workflow-current-state-log-entry'] =array(
-    'name' => t("Last workflow comment log"),
+    'name' => t('Last workflow comment log'),
     'description' => t('Last workflow comment log'),
     'type' => 'workflow',
   );
@@ -471,7 +471,7 @@ function workflow_transition($node, $sid) {
         if ($state = workflow_get_workflow_states_by_sid($sid)) {
           watchdog('workflow', '@node_title scheduled for state change to %state_name on !scheduled_date',
             array('@node_title' => $node->title, '%state_name' => $state->state, '!scheduled_date' => format_date($scheduled)),
-            WATCHDOG_NOTICE, l('view', "node/$node->nid/workflow"));
+            WATCHDOG_NOTICE, l('view', 'node/' . $node->nid . '/workflow'));
           drupal_set_message(t('@node_title is scheduled for state change to %state_name on !scheduled_date',
             array('@node_title' => $node->title, '%state_name' => $state->state, '!scheduled_date' => format_date($scheduled))));
         }
@@ -857,7 +857,7 @@ function workflow_get_creation_state_by_wid($wid) {
  * Get all workflows.
  */ 
 function workflow_get_workflows() {
-  $results = db_query("SELECT * FROM {workflows}");
+  $results = db_query('SELECT * FROM {workflows}');
   $workflows = $results->fetchAll();
   foreach ($workflows as $index => $workflow) {
     $workflows[$index]->options = unserialize($workflows[$index]->options);
@@ -869,7 +869,7 @@ function workflow_get_workflows() {
  * Get a specific workflow, wid is a unique ID.
  */
 function workflow_get_workflows_by_wid($wid) {
-  $results = db_query("SELECT * FROM {workflows} WHERE wid = :wid", array(':wid' => $wid));
+  $results = db_query('SELECT * FROM {workflows} WHERE wid = :wid', array(':wid' => $wid));
   if ($workflow = $results->fetchObject()) {
     $workflow->options = unserialize($workflow->options);
     return $workflow;
@@ -932,7 +932,7 @@ function workflow_update_workflows(&$data) {
  * Get all workflow_type_map.
  */
 function workflow_get_workflow_type_map() {
-  $results = db_query("SELECT * FROM {workflow_type_map}");
+  $results = db_query('SELECT * FROM {workflow_type_map}');
   return $results->fetchAll();
 }
 
@@ -945,7 +945,7 @@ function workflow_get_workflow_type_map() {
  * Hence, we filter out the non-mapped results.
  */
 function workflow_get_workflow_type_map_by_type($type) {
-  $results = db_query("SELECT * FROM {workflow_type_map} WHERE type = :type AND wid != 0", array(':type' => $type));
+  $results = db_query('SELECT * FROM {workflow_type_map} WHERE type = :type AND wid != 0', array(':type' => $type));
   return $results->fetchObject();
 }
 
@@ -1127,7 +1127,7 @@ function workflow_get_workflow_states_by_wid($wid, $options = array()) {
  * Given a sid, return a state. Sids are a unique id.
  */
 function workflow_get_workflow_states_by_sid($sid, $options = array()) {
-  $results = db_query("SELECT * FROM {workflow_states} WHERE sid = :sid", array(':sid' => $sid));
+  $results = db_query('SELECT * FROM {workflow_states} WHERE sid = :sid', array(':sid' => $sid));
   return $results->fetchObject();
 }
 
@@ -1164,7 +1164,7 @@ function workflow_delete_workflow_states_by_sid($sid, $new_sid = FALSE) {
   // Delete the transitions.
   foreach ($preexisting as $from => $array) {
     foreach (array_keys($array) as $target_id) {
-      foreach (workflow_get_workflow_transitions_by_sid_target_sid($from, $target_id) as $transition) {
+      if ($transition = workflow_get_workflow_transitions_by_sid_target_sid($from, $target_id)) {
         workflow_delete_workflow_transitions_by_tid($transition->tid);
       }
     }
@@ -1260,17 +1260,17 @@ function workflow_allowable_transitions($sid, $dir = 'to', $roles = 'ALL') {
   }
   // Yes. This is a monster. This should, in all absolute seriousness, be cut down to size.
   // I also REALLY do not like the insecure field pieces in here.
-  $results = db_query(""
-      . "(SELECT t.tid, t." . $field . " as state_id, s.state AS state_name, s.weight AS state_weight "
-        . "FROM {workflow_transitions} t "
-        . "INNER JOIN {workflow_states} s ON s.sid = t." . $field . " "
-        . "WHERE t." . $field_where . " = :sid AND s.status = 1 "
-        . "ORDER BY state_weight) "
-    . "UNION "
-      . "(SELECT s.sid as tid, s.sid as state_id, s.state as state_name, s.weight as state_weight "
-        . "FROM {workflow_states} s "
-        . "WHERE s.sid = :sid AND s.status = 1) "
-    . "ORDER BY state_weight, state_id",
+  $results = db_query(''
+      . '(SELECT t.tid, t.' . $field . ' as state_id, s.state AS state_name, s.weight AS state_weight '
+        . 'FROM {workflow_transitions} t '
+        . 'INNER JOIN {workflow_states} s ON s.sid = t.' . $field . ' '
+        . 'WHERE t.' . $field_where . ' = :sid AND s.status = 1 '
+        . 'ORDER BY state_weight) '
+    . 'UNION '
+      . '(SELECT s.sid as tid, s.sid as state_id, s.state as state_name, s.weight as state_weight '
+        . 'FROM {workflow_states} s '
+        . 'WHERE s.sid = :sid AND s.status = 1) '
+    . 'ORDER BY state_weight, state_id',
     array(':sid' => $sid));
   foreach ($results as $transition) {
     if ($roles == 'ALL'  // Superuser.
@@ -1339,7 +1339,7 @@ function workflow_insert_workflow_node_history($data) {
  * Given a node id, find out what it's current state is. Unique (for now).
  */
 function workflow_get_workflow_node_by_nid($nid) {
-  $results = db_query("SELECT * FROM {workflow_node} WHERE nid = :nid", array(':nid' => $nid));
+  $results = db_query('SELECT * FROM {workflow_node} WHERE nid = :nid', array(':nid' => $nid));
   return $results->fetchObject();
 }
 
@@ -1347,7 +1347,7 @@ function workflow_get_workflow_node_by_nid($nid) {
  * Given a sid, find out the nodes associated.
  */
 function workflow_get_workflow_node_by_sid($sid) {
-  $results = db_query("SELECT * FROM {workflow_node} WHERE sid = :sid", array(':sid' => $sid));
+  $results = db_query('SELECT * FROM {workflow_node} WHERE sid = :sid', array(':sid' => $sid));
   return $results->fetchAll();
 }
 
