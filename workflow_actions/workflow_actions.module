@@ -47,18 +47,17 @@ function workflow_select_next_state_action($node, $context) {
   // If this action is being fired because it's attached to a workflow transition
   // then the node's new state (now its current state) should be in $node->workflow
   // because that is where the value from the workflow form field is stored;
-  // otherwise the current state is placed in $node->_workflow by our nodeapi load.
+  // otherwise the current state is placed in $node->workflow by our nodeapi load.
   if (!isset($node->nid)) {
     watchdog('workflow', 'Unable to get current node id state of node - node is not yet saved.');
     return;
   }
-  if (!isset($node->workflow) && !isset($node->_workflow)) {
+  if (!isset($node->workflow)) {
     watchdog('workflow', 'Unable to get current workflow state of node %nid.',
       array('%nid' => $node->nid));
     return;
   }
-  $current_state = isset($node->workflow) ? $node->workflow : $node->_workflow;
-  // TODO why do we have both of these? Is it not time to standardize on one or the other?
+  $current_state = $node->workflow;
   $new_state = $current_state;
   // Get the node's new state.
   $choices = workflow_field_choices($node);

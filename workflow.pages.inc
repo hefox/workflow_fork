@@ -133,7 +133,7 @@ function workflow_tab_form($form_id, $form_state, $node, $wid, $states, $current
     $timestamp = '';
     $comment = '';
     // See if scheduling information is present.
-    if (!empty($node->_workflow_scheduled_timestamp) && !empty($node->_workflow_scheduled_sid)) {
+    if (!empty($node->workflow_scheduled_timestamp) && !empty($node->workflow_scheduled_sid)) {
       global $user;
       if (variable_get('configurable_timezones', 1) && $user->uid && drupal_strlen($user->timezone)) {
         $timezone = $user->timezone;
@@ -142,9 +142,9 @@ function workflow_tab_form($form_id, $form_state, $node, $wid, $states, $current
         $timezone = variable_get('date_default_timezone', 0);
       }
       // The default value should be the upcoming sid.
-      $current = $node->_workflow_scheduled_sid;
-      $timestamp = $node->_workflow_scheduled_timestamp;
-      $comment = $node->_workflow_scheduled_comment;
+      $current = $node->workflow_scheduled_sid;
+      $timestamp = $node->workflow_scheduled_timestamp;
+      $comment = $node->workflow_scheduled_comment;
     }
     // Include the same form elements here that are included on a
     // regular node editing page. $form is modified by reference.
