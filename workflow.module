@@ -185,6 +185,7 @@ function workflow_tokens($type, $tokens, array $data = array(), array $options =
     case 'workflow':
       $node = $data['node'];
       if ($workflow = workflow_get_workflow_type_map_by_type($node->type)) {
+        $workflow = workflow_get_workflows_by_wid($workflow->wid);
         $wid = $workflow->wid;
         $values['workflow-name'] = $workflow->name;
         $last_history = workflow_get_workflow_node_history_by_nid($node->nid, 1);
@@ -329,7 +330,6 @@ function workflow_node_load($nodes, $types) {
 function workflow_node_insert($node) {
   // Skip if there are no workflows.
   if ($workflow = workflow_get_workflow_type_map_by_type($node->type)) {
-    $wid = $workflow->wid;
     // If the state is not specified, use first valid state.
     // For example, a new node must move from (creation) to some
     // initial state.
@@ -352,7 +352,6 @@ function workflow_node_insert($node) {
 function workflow_node_update($node) {
   // Skip if there are no workflows.
   if ($workflow = workflow_get_workflow_type_map_by_type($node->type)) {
-    $wid = $workflow->wid;
     // Get new state from value of workflow form field, stored in $node->workflow.
     if (!isset($sid)) {
       $sid = $node->workflow;
