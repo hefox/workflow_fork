@@ -97,7 +97,7 @@ function workflow_select_given_state_action_form($context) {
   $previous_workflow = '';
   $options = array();
   foreach (workflow_get_workflow_states() as $data) {
-    $options[$data->name][$data->sid] = check_plain($data->state);
+    $options[$data->state][$data->sid] = check_plain($data->state);
   }
   $form['target_sid'] = array(
     '#type' => 'select',
