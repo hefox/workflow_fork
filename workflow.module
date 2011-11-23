@@ -572,22 +572,22 @@ function workflow_form_alter(&$form, &$form_state, $form_id) {
   if ((isset($form['#node']) && $form_id == 'comment_node_' . $form['#node']->type . '_form')
     || (isset($form['#node']->type) && isset($form['#node']) && $form['#node']->type . '_node_form' == $form_id)) {
     // Skip if there are no workflows.
+    if (isset($form['#node'])) {
+      $node = $form['#node'];
+      // Abort if user does not want to display workflow form on node editing form.
+      if (!in_array('node', variable_get('workflow_' . $form['#node']->type, array('node')))) {
+        return;
+      }
+    }
+    else {
+      $node = node_load($form['nid']['#value']);
+      $type = $node->type;
+      // Abort if user does not want to display workflow form on node editing form.
+      if (!in_array('comment', variable_get('workflow_' . $type, array('node')))) {
+        return;
+      }
+    }
     if ($workflow = workflow_get_workflow_type_map_by_type($node->type)) {
-      if (isset($form['#node'])) {
-        $node = $form['#node'];
-        // Abort if user does not want to display workflow form on node editing form.
-        if (!in_array('node', variable_get('workflow_' . $form['#node']->type, array('node')))) {
-          return;
-        }
-      }
-      else {
-        $node = node_load($form['nid']['#value']);
-        $type = $node->type;
-        // Abort if user does not want to display workflow form on node editing form.
-        if (!in_array('comment', variable_get('workflow_' . $type, array('node')))) {
-          return;
-        }
-      }
       $choices = workflow_field_choices($node);
       $workflow = workflow_get_workflows_by_wid($workflow->wid);
       $states = workflow_get_workflow_states_by_wid($workflow->wid);
@@ -686,7 +686,7 @@ function workflow_execute_transition($node, $sid, $comment = NULL, $force = FALS
   // Make sure this transition is valid and allowed for the current user.
   // Check allowability of state change if user is not superuser (might be cron).
   if (($user->uid != 1) && !$force) {
-    if (!workflow_transition_allowed($tid, array_merge(array_keys($user->roles), array('author')))) {
+    if (!workflow_transition_allowed($transition->tid, array_merge(array_keys($user->roles), array('author')))) {
       watchdog('workflow', 'User %user not allowed to go from state %old to %new',
         array('%user' => $user->name, '%old' => $old_sid, '%new' => $sid, WATCHDOG_NOTICE));
       return;
