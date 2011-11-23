@@ -446,4 +446,5 @@ function workflow_update_6101() {
 // Table update from 6 to 7. Adding a unique key for fields (already held unique in code).
 function workflow_update_7000(){
   db_add_unique_key('workflows', 'name', array('name'));
+  db_add_unique_key('workflow_states', 'wid_state', array('wid', 'state'));
 }
