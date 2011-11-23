@@ -130,10 +130,11 @@ function workflow_cron() {
     $node = node_load($row->nid);
     // Make sure transition is still valid; i.e., the node is
     // still in the state it was when the transition was scheduled.
-    if ($node->workflow == $row->old_sid) { //TODO clarify, are we using _workflow or workflow for this.
+    if ($node->workflow == $row->old_sid) {
       // Do transition.
       workflow_execute_transition($node, $row->sid, $row->comment, TRUE);
-      watchdog('content', '%type: scheduled transition of %title.', array('%type' => t($node->type), '%title' => $node->title), WATCHDOG_NOTICE, l(t('view'), 'node/' . $node->nid));
+      watchdog('content', '%type: scheduled transition of %title.',
+        array('%type' => t($node->type), '%title' => $node->title), WATCHDOG_NOTICE, l(t('view'), 'node/' . $node->nid));
       $clear_cache = TRUE;
     }
     else {
