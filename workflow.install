@@ -28,12 +28,33 @@ function workflow_uninstall() {
  */
 function workflow_schema() {
   $schema['workflows'] = array(
+    'description' => 'Workflows',
+    'export' => array(
+      'key' => 'name',
+      'key name' => 'Name',
+      'admin_title' => 'label',
+      'identifier' => 'workflows',
+      'default hook' => 'default_workflow_workflow',
+      'export callback' => 'workflow_workflow_export',
+      'delete callback' => 'workflow_workflow_delete',
+      'load callback' => 'workflow_workflow_load',
+      'load all callback' => 'workflow_workflow_load_all',
+      'save callback' => 'workflow_workflow_save',
+      'can disable' => FALSE,
+      'api' => array(
+        'owner' => 'workflow',
+        'api' => 'default_workflow_workflows',
+        'minimum_version' => 1,
+        'current_version' => 1,
+      ),
+    ),
     'fields'      => array(
       'wid'       => array('type' => 'serial', 'not null' => TRUE),
       'name'      => array('type' => 'varchar', 'length' => '255', 'not null' => TRUE, 'default' => ''),
       'tab_roles' => array('type' => 'varchar', 'length' => '60', 'not null' => TRUE, 'default' => ''),
       'options'   => array('type' => 'text', 'size' => 'big', 'not null' => FALSE)),
     'primary key' => array('wid'),
+    'unique keys' => array('name' => array('name')),
   );
   $schema['workflow_type_map'] = array(
     'fields' => array(
@@ -62,6 +83,7 @@ function workflow_schema() {
       'sysid'  => array('type' => 'int', 'size' => 'tiny', 'not null' => TRUE, 'default' => 0, 'disp-width' => '4'),
       'status' => array('type' => 'int', 'size' => 'tiny', 'not null' => TRUE, 'default' => 1, 'disp-width' => '4')),
     'primary key' => array('sid'),
+    'unique keys' => array('state' => array('state')),
     'indexes' => array(
       'sysid' => array('sysid'),
       'wid' => array('wid')),
@@ -420,4 +442,10 @@ function workflow_update_6101() {
     db_change_field($ret, 'workflow_transitions', 'tid', 'tid', array('type' => 'serial', 'not null' => TRUE), array('primary key' => array('tid')));
   }
   return $ret;
+}
+
+// Table update from 6 to 7. Adding a unique key for fields (already held unique in code).
+function workflow_update_7000(){
+  db_add_unique_key('workflows', 'name', array('name'));
+  db_add_unique_key('workflow_states', 'state', array('state'));
 }

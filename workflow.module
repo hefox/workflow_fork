@@ -36,6 +36,9 @@ define('WORKFLOW_CREATION', 1);
 define('WORKFLOW_CREATION_DEFAULT_WEIGHT', -50);
 define('WORKFLOW_DELETION', 0);
 
+// Include CTools integration functions and callbacks.
+include('workflow.ctools.inc');
+
 /**
  * Implements hook_permission().
  */
@@ -853,6 +856,8 @@ function workflow_get_creation_state_by_wid($wid) {
  * Sure it's a little type A, granted. But it's useful in the long run.
  */
 
+//TODO: Go through all of these and replace * with specific field names - indexing = effeciency.
+
 /**
  * Functions related to table workflows.
  */
@@ -903,7 +908,7 @@ function workflow_delete_workflows_by_wid($wid) {
 /**
  * Given information, update or insert a new workflow. Returns data by ref. (like node_save).
  */
-function workflow_update_workflows(&$data) {
+function workflow_update_workflows(&$data, $create_creation_state = TRUE) {
   $data = (object) $data;
   if (isset($data->tab_roles) && is_array($data->tab_roles)) {
     $data->tab_roles = implode(',', $data->tab_roles);
@@ -913,16 +918,18 @@ function workflow_update_workflows(&$data) {
   }
   else {
     drupal_write_record('workflows', $data);
-    $state_data = array(
-      'wid' => $data->wid,
-      'state' => t('(creation)'),
-      'sysid' => WORKFLOW_CREATION,
-      'weight' => WORKFLOW_CREATION_DEFAULT_WEIGHT,
-      );
-    workflow_update_workflow_states($state_data);
-    // TODO consider adding state data to return here as part of workflow data structure.
-    // That way we could past sructs and transitions around as a data boject as a whole.
-    // Might make clone easier, but it might be a little hefty for our needs?
+    if ($create_creation_state) {
+      $state_data = array(
+        'wid' => $data->wid,
+        'state' => t('(creation)'),
+        'sysid' => WORKFLOW_CREATION,
+        'weight' => WORKFLOW_CREATION_DEFAULT_WEIGHT,
+        );
+      workflow_update_workflow_states($state_data);
+      // TODO consider adding state data to return here as part of workflow data structure.
+      // That way we could past sructs and transitions around as a data boject as a whole.
+      // Might make clone easier, but it might be a little hefty for our needs?
+    }
   }
   // Workflow name change affects tabs (local tasks), so force menu rebuild.
   menu_rebuild();
@@ -951,6 +958,14 @@ function workflow_get_workflow_type_map() {
 function workflow_get_workflow_type_map_by_type($type) {
   $results = db_query('SELECT * FROM {workflow_type_map} WHERE type = :type AND wid != 0', array(':type' => $type));
   return $results->fetchObject();
+}
+
+/**
+ * Given a wid, find all node types mapped to it.
+ */
+function workflow_get_workflow_type_map_by_wid($wid) {
+  $results = db_query('SELECT * FROM {workflow_type_map} WHERE wid = :wid', array(':wid' => $wid));
+  return $results->fetchAll();
 }
 
 /**
