@@ -134,7 +134,7 @@ function workflow_select_given_state_action_submit($form_id, $form_state) {
   if ($state = workflow_get_workflow_states_by_sid($form_state['values']['target_sid'])) {
     return array(
       'target_sid' => $form_state['values']['target_sid'],
-      'state_name' => check_plain($state->name),
+      'state_name' => check_plain($state->state),
       'force' => $form_state['values']['force'],
       'workflow_comment' => $form_state['values']['workflow_comment'],
     );
