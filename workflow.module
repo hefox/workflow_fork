@@ -1106,20 +1106,21 @@ function workflow_update_workflow_transitions_roles($tid, $roles) {
  */
  
 /**
- * Get all states in the system, with options to filter.
+ * Get all states in the system, with options to filter, only where a workflow exists.
  */
 function workflow_get_workflow_states($options = array()) {
-  $query = 'SELECT * FROM {workflow_states} WHERE 1=1 ';
+  $query = 'SELECT * FROM {workflow_states} ws '.
+    'LEFT JOIN {workflows} w ON ws.wid = w.wid WHERE 1=1 ';
   $query_array = array();
   if (isset($options['sysid'])) {
     $query_array[':sysid'] = $options['sysid'];
-    $query .= 'AND sysid = :sysid ';
+    $query .= 'AND ws.sysid = :sysid ';
   }
   if (isset($options['status'])) {
     $query_array[':status'] = $options['status'];
-    $query .= 'AND status = :status ';
+    $query .= 'AND ws.status = :status ';
   }
-  $query .= 'ORDER BY wid, weight';
+  $query .= 'ORDER BY ws.wid, ws.weight';
   $results = db_query($query, $query_array);
   return $results->fetchAll();
 }

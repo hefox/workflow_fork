@@ -96,7 +96,8 @@ function workflow_select_given_state_action($node, $context) {
 function workflow_select_given_state_action_form($context) {
   $previous_workflow = '';
   $options = array();
-  foreach (workflow_get_workflow_states() as $data) {
+  // Get all states, only where active.
+  foreach (workflow_get_workflow_states(array('status' => 1)) as $data) {
     $options[$data->state][$data->sid] = check_plain($data->state);
   }
   $form['target_sid'] = array(
