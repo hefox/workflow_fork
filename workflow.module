@@ -205,7 +205,7 @@ function workflow_tokens($type, $tokens, array $data = array(), array $options =
             $date = REQUEST_TIME;
             $user_name = $node->uid ? $node->name : variable_get('anonymous', 'Anonymous');
             $uid = $node->uid;
-            $mail = $node->uid ? $node->user_mail : '';
+            $mail = ($node->uid && isset($node->user_mail)) ? $node->user_mail : '';
             $comment = isset($node->workflow_comment) ? $node->workflow_comment : '';
           }
           elseif (!isset($node->workflow) && empty($last_history->sid)) {
@@ -221,7 +221,7 @@ function workflow_tokens($type, $tokens, array $data = array(), array $options =
             $date = REQUEST_TIME;
             $user_name = $node->uid ? $node->name : variable_get('anonymous', 'Anonymous');
             $uid = $node->uid;
-            $mail = $node->uid ? $node->user_mail : '';
+            $mail = ($node->uid && isset($node->user_mail)) ? $node->user_mail : '';
             $comment = isset($node->workflow_comment) ? $node->workflow_comment : '';
           }
           else {
@@ -237,8 +237,8 @@ function workflow_tokens($type, $tokens, array $data = array(), array $options =
             $mail = $account->uid ? $account->mail : '';
             $comment = $last_history->comment;
           }
-          $values['workflow-current-state-name']                =  $sid->name;
-          $values['workflow-old-state-name']                    =  $old_sid->name;
+          $values['workflow-current-state-name']                =  $sid->state;
+          $values['workflow-old-state-name']                    =  $old_sid->state;
           $values['workflow-current-state-date-iso']            =  date('Ymdhis', $date);
           $values['workflow-current-state-date-tstamp']         =  $date;
           $values['workflow-current-state-date-formatted']      =  date('M d, Y h:i:s', $date);
