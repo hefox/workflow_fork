@@ -29,25 +29,6 @@ function workflow_uninstall() {
 function workflow_schema() {
   $schema['workflows'] = array(
     'description' => 'Workflows',
-    'export' => array(
-      'key' => 'name',
-      'key name' => 'Name',
-      'admin_title' => 'label',
-      'identifier' => 'workflows',
-      'default hook' => 'default_workflow_workflow',
-      'export callback' => 'workflow_workflow_export',
-      'delete callback' => 'workflow_workflow_delete',
-      'load callback' => 'workflow_workflow_load',
-      'load all callback' => 'workflow_workflow_load_all',
-      'save callback' => 'workflow_workflow_save',
-      'can disable' => FALSE,
-      'api' => array(
-        'owner' => 'workflow',
-        'api' => 'default_workflow_workflows',
-        'minimum_version' => 1,
-        'current_version' => 1,
-      ),
-    ),
     'fields'      => array(
       'wid'       => array('type' => 'serial', 'not null' => TRUE),
       'name'      => array('type' => 'varchar', 'length' => '255', 'not null' => TRUE, 'default' => ''),

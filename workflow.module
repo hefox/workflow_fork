@@ -36,9 +36,6 @@ define('WORKFLOW_CREATION', 1);
 define('WORKFLOW_CREATION_DEFAULT_WEIGHT', -50);
 define('WORKFLOW_DELETION', 0);
 
-// Include CTools integration functions and callbacks.
-include('workflow.ctools.inc');
-
 /**
  * Implements hook_permission().
  */
@@ -418,6 +415,20 @@ function workflow_comment_update($comment) {
     }
     workflow_transition($node, $sid);
   }
+}
+
+/**
+ * Implements hook_features_api().
+ */
+function workflow_features_api() {
+  return array(
+    'workflow' => array(
+      'name' => t('Workflow'),
+      'file' => drupal_get_path('module', 'workflow') . '/workflow.features.inc',
+      'default_hook' => 'workflow_features_default_workflow',
+      'feature_source' => TRUE,
+    ),
+  );
 }
 
 /**
@@ -877,10 +888,29 @@ function workflow_get_workflows() {
 /**
  * Get a specific workflow, wid is a unique ID.
  */
-function workflow_get_workflows_by_wid($wid) {
+function workflow_get_workflows_by_wid($wid, $unserialize_options = TRUE) {
   $results = db_query('SELECT * FROM {workflows} WHERE wid = :wid', array(':wid' => $wid));
   if ($workflow = $results->fetchObject()) {
-    $workflow->options = unserialize($workflow->options);
+    if ($unserialize_options) {
+      $workflow->options = unserialize($workflow->options);
+    }
+    return $workflow;
+  }
+  return FALSE;
+}
+
+/**
+ * Get a specific workflow, name is a unique ID.
+ */
+function workflow_get_workflows_by_name($name, $unserialize_options = FALSE) {
+  $results = db_query('SELECT * FROM {workflows} WHERE name = :name', array(':name' => $name));
+  if ($workflow = $results->fetchObject()) {
+    // This is only called by CRUD functions in workflow.features.inc
+    // More than likely in prep for an import / export action.
+    // Therefore we don't want to fiddle with the response.
+    if ($unserialize_options) {
+      $workflow->options = unserialize($workflow->options);
+    }
     return $workflow;
   }
   return FALSE;
@@ -1152,9 +1182,18 @@ function workflow_get_workflow_states_by_sid($sid, $options = array()) {
 }
 
 /**
+ * Given a wid and state, return a state. Wids / states are a unique id.
+ */
+function workflow_get_workflow_states_by_wid_state($wid, $state) {
+  $results = db_query('SELECT * FROM {workflow_states} WHERE wid = :wid AND state = :state',
+    array(':wid' => $wid, ':state' => $state));
+  return $results->fetchObject();
+}
+
+/**
  * Given a sid, delete the state and all associated data.
  */
-function workflow_delete_workflow_states_by_sid($sid, $new_sid = FALSE) {
+function workflow_delete_workflow_states_by_sid($sid, $new_sid = FALSE, $true_delete = FALSE) {
   // Notify interested modules. We notify first to allow access to data before we zap it.
   module_invoke_all('workflow', 'state delete', $sid, NULL, NULL);
   // Re-parent any nodes that we don't want to orphan.
@@ -1194,8 +1233,12 @@ function workflow_delete_workflow_states_by_sid($sid, $new_sid = FALSE) {
   // Delete the state. -- We don't actually delete, just deactivate.
   // This is a matter up for some debate, to delete or not to delete, since this
   // causes name conflicts for states. In the meantime, we just stick with what we know.
-  // db_delete('workflow_states')->condition('sid', $sid)->execute();
-  db_update('workflow_states')->fields(array('status' => 0,))->condition('sid', $sid, '=')->execute();
+  if ($true_delete) {
+    db_delete('workflow_states')->condition('sid', $sid)->execute();
+  }
+  else {
+    db_update('workflow_states')->fields(array('status' => 0,))->condition('sid', $sid, '=')->execute();
+  }
 }
 
 /**
