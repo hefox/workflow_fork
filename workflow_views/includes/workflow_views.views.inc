@@ -17,8 +17,8 @@
  * Implements hook_views_data().
  */
 function workflow_views_views_data() {
+  // Workflow states.
   $data['workflow_states']['table']['group']  = t('Workflow');
-  // Explain how this table joins to others.
   $data['workflow_states']['table']['join'] = array(
     'node' => array(
       'field' => 'sid',
@@ -41,8 +41,9 @@ function workflow_views_views_data() {
       'click sortable' => TRUE,
     ),
   );
+
+  // Workflow node.
   $data['workflow_node']['table']['group']  = t('Workflow');
-  // Explain how this table joins to others.
   $data['workflow_node']['table']['join'] = array(
     'node' => array(
       'field' => 'nid',
@@ -69,8 +70,46 @@ function workflow_views_views_data() {
       'numeric' => TRUE,
     ),
   );
+  $data['workflow_node']['stamp'] = array(
+    'title' => t('Current time'),
+    'help' => t('The time at which the node moved to the current state.'),
+    'field' => array(
+      'handler' => 'views_handler_field_date',
+      'click sortable' => TRUE,
+    ),
+    'filter' => array(
+      'handler' => 'views_handler_filter_date',
+      'numeric' => TRUE,
+    ),
+    'sort' => array(
+      'handler' => 'views_handler_sort_date',
+    ),
+  );
+  $data['workflow_node']['uid'] = array(
+    'title' => t('Last changed user'),
+    'help' => t('The user who performed the last state change.'),
+    'relationship' => array(
+      'base' => 'users',
+      'base field' => 'uid',
+      'handler' => 'views_handler_relationship',
+      'label' => t('User'),
+    ),
+    'argument' => array(
+      'handler' => 'views_handler_argument_user_uid',
+      'click sortable' => TRUE,
+      'name table' => 'workflow_node',
+      'name field' => 'uid',
+    ),
+    'filter' => array(
+      'handler' => 'views_handler_filter_user_name',
+      'numeric' => TRUE,
+      'name table' => 'workflow_node',
+      'name field' => 'uid',
+    ),
+  );
+
+  // Workflow scheduled transition.
   $data['workflow_scheduled_transition']['table']['group']  = t('Workflow');
-  // Explain how this table joins to others.
   $data['workflow_scheduled_transition']['table']['join'] = array(
     'node' => array(
       'field' => 'nid',
@@ -88,21 +127,6 @@ function workflow_views_views_data() {
     'filter' => array(
       'handler' => 'workflow_views_handler_filter_sid',
       'numeric' => TRUE,
-    ),
-  );
-  $data['workflow_node']['stamp'] = array(
-    'title' => t('Current time'),
-    'help' => t('The time at which the node moved to the current state.'),
-    'field' => array(
-      'handler' => 'views_handler_field_date',
-      'click sortable' => TRUE,
-    ),
-    'filter' => array(
-      'handler' => 'views_handler_filter_date',
-      'numeric' => TRUE,
-    ),
-    'sort' => array(
-      'handler' => 'views_handler_sort_date',
     ),
   );
   $data['workflow_scheduled_transition']['scheduled'] = array(
@@ -132,8 +156,9 @@ function workflow_views_views_data() {
       'numeric' => TRUE,
     ),
   );
+  
+  // Workflow node history.
   $data['workflow_node_history']['table']['group']  = t('Workflow');
-  // Explain how this table joins to others.
   $data['workflow_node_history']['table']['join'] = array(
     'node' => array(
       'field' => 'nid',
