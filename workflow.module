@@ -524,7 +524,7 @@ function workflow_node_form(&$form, $form_state, $title, $name, $current, $choic
   else {
     $form['workflow'][$name] = array(
       '#type' => 'radios',
-      '#title' => $form['#wf']->options['name_as_title'] ? t('@title', array('@title' => $title)) : '',
+      '#title' => isset($form['#wf']->options['name_as_title']) ? t('@title', array('@title' => $title)) : '',
       '#options' => $choices,
       '#name' => $name,
       '#parents' => array('workflow'),
