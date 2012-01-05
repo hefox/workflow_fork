@@ -30,8 +30,7 @@ class views_handler_argument_workflow_state extends views_handler_argument {
   }
 
   /**
-   * @todo Please document this function.
-   * @see http://drupal.org/node/1354
+   * Helper function, to gather the workflow name from a given arguement.
    */
   function workflow_states($sid) {
     if (empty($sid)) {
@@ -39,6 +38,7 @@ class views_handler_argument_workflow_state extends views_handler_argument {
     }
     static $states;
     if (!isset($states)) {
+      // Get all, even the non-active states, filter by sid.
       foreach (workflow_get_workflow_states() as $state) {
         $states[$state->sid] = check_plain($state->state);
       }

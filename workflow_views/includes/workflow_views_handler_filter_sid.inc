@@ -17,16 +17,17 @@ class workflow_views_handler_filter_sid extends views_handler_filter_in_operator
       foreach (workflow_get_workflows() as $data) {
         $workflows[$data->wid] = check_plain(t($data->name));
       }
+      $options = array('status' => 1);
       if (count($workflows) > 1) {
         $states = array('' => t('No state'));
-        foreach ($workflows as $wid => $wname) {
-          foreach (workflow_get_workflow_states_by_wid($wid) as $state) {
-            $states[$wname][$state->sid] = check_plain($state->state);
+        foreach ($workflows as $wid => $name) {
+          foreach (workflow_get_workflow_states_by_wid($wid, $options) as $state) {
+            $states[$name][$state->sid] = check_plain($state->state);
           }
         }
       }
       else {
-        foreach (workflow_get_workflow_states() as $state) {
+        foreach (workflow_get_workflow_states($options) as $state) {
           $states[$state->sid] = check_plain($state->state);
         }
       }
