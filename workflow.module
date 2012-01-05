@@ -298,11 +298,10 @@ function workflow_token_info() {
   $tokens['workflow-current-state-log-entry'] =array(
     'name' => t('Last workflow comment log'),
     'description' => t('Last workflow comment log'),
-    'type' => 'workflow',
   );
   return array(
-    'types' => array('node' => $type),
-    'tokens' => array('node' => $tokens),
+    'types' => array('workflow' => $type),
+    'tokens' => array('workflow' => $tokens),
   );
 }
 
